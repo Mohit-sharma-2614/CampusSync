@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">CampusSync</string>
+    <string name="welcome">Welcome to BKBIET</string>
+    <string name="description">LETS ACCESS ALL FROM HERE</string>
+    <string name="login">Login</string>
+    <string name="signup">Sign Up</string>
+    <string name="forgot_password">Forget Password</string>
+</resources>
