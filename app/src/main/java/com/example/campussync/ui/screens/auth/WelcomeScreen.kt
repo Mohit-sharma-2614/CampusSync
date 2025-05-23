@@ -1,4 +1,4 @@
-package com.example.campussync.ui.screens
+package com.example.campussync.ui.screens.auth
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background

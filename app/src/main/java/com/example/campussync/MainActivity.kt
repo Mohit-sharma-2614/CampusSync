@@ -8,7 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
-import com.example.campussync.ui.screens.Login_Screen
+import com.example.campussync.ui.navigation.AppNavigation
+import com.example.campussync.ui.screens.classes.ClassesScreen
 import com.example.campussync.ui.theme.CampusSyncTheme
 
 class MainActivity : ComponentActivity() {
@@ -17,11 +18,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CampusSyncTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Login_Screen(
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                AppNavigation()
             }
         }
     }
