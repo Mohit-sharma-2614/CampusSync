@@ -25,12 +25,22 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlinx.coroutines.flow.collectLatest // Crucial for collecting flows
 import android.util.Log // For debugging
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import com.example.campussync.data.repository.AuthRepository
+import com.example.campussync.persentation.auth.LoginViewModel.LoginEvent
+import com.example.campussync.utils.ConnectivityObserver
+import com.example.campussync.utils.Resource
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 
-// Assuming these are defined elsewhere:
-// data class Routes(...)
-// val dashboardRoutes: List<Routes> = listOf(...)
-// Your repository interfaces and TokenManager, UserPreferences, etc.
-
+// --- DashboardCard and DashboardUiState (Minor adjustments) ---
 data class DashboardCard(
     val title: String,
     val iconRes: ImageVector,
@@ -41,167 +51,245 @@ data class DashboardCard(
 )
 
 data class DashboardUiState(
+    val isLoggedIn: Boolean = true, // Default to false, will be updated by UserPreferences
     val cards: List<DashboardCard> = emptyList(),
     val navItems: List<Routes> = emptyList(),
-    val isTeacher: Boolean = false, // Will be updated from UserPreferences
-    val id: Long = 0L,              // Will be updated from UserPreferences
+    val isTeacher: Boolean = false,
+    val userId: Long = 0L,
     val selectedNavIndex: Int = 0,
-    val isLoading: Boolean = false,
+    val isLoading: Boolean = true, // Start as true since we perform initial checks
     val errorMessage: String? = null
 )
 
+// --- DashboardViewModel ---
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val tokenManager: TokenManager,
-    private val studentRepository: StudentRepository, // Keep if needed for student-specific dashboard data
-    // private val userRepository: UserRepository, // Remove this if userPreferences fully replaces it
-    private val teacherRepository: TeacherRepository, // Keep if needed for teacher-specific dashboard data
+    private val authRepository: AuthRepository,
+    private val studentRepository: StudentRepository,
+    private val teacherRepository: TeacherRepository,
+    connectivityObserver: ConnectivityObserver,
     private val userPreferences: UserPreferences
 ) : ViewModel() {
+
+    val connectivityStatus: StateFlow<ConnectivityObserver.Status> = connectivityObserver.observe()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ConnectivityObserver.Status.Disconnected)
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
-    // _event can remain if you use it for one-shot UI events, otherwise it's redundant.
-    private val _event = MutableStateFlow<String?>(null)
-    val event: StateFlow<String?> = _event.asStateFlow()
-
     init {
-        // Initialize dashboard cards with default/placeholder values.
-        // Dynamic data like "82%" and `badge` should be fetched and updated asynchronously.
-        _uiState.update { currentState ->
-            currentState.copy(
-                cards = listOf(
-                    DashboardCard(
-                        title = "Attendance",
-                        iconRes = Icons.Rounded.FileDownloadDone,
-                        colors = listOf(Color(0xFF46A6FF), Color(0xFF4288FD)),
-                        extra = null, // Set to null initially, fetch real value later
-                        destination = AttendanceRoute.route
-                    ),
-                    DashboardCard(
-                        title = "Assignments",
-                        iconRes = Icons.AutoMirrored.Rounded.Assignment,
-                        colors = listOf(Color(0xFFFF7043), Color(0xFFF4511E)),
-                        badge = null, // Set to null initially, fetch real value later
-                        destination = AssignmentsRoute.route
+        initializeDashboard()
+    }
+
+    fun clearError() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    private fun initializeDashboard() {
+        viewModelScope.launch {
+            // Combine user preferences into a single flow for initial state and continuous updates
+            combine(
+                userPreferences.isLoggedIn,
+                userPreferences.isTeacher,
+                userPreferences.userId
+            ) { isLoggedIn, isTeacher, userId ->
+                Triple(isLoggedIn, isTeacher, userId)
+            }.onEach { (isLoggedIn, isTeacher, userId) ->
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        isLoggedIn = isLoggedIn,
+                        isTeacher = isTeacher,
+                        userId = userId?.toLongOrNull() ?: 0L,
+                        isLoading = if (isLoggedIn) currentState.isLoading else false,
+                        cards = if (isLoggedIn) currentState.cards else getDefaultDashboardCards()
                     )
-                ),
-                navItems = dashboardRoutes,
-                selectedNavIndex = 0
+                }
+                // Only attempt to fetch data if the user is considered logged in and has an ID
+                if (isLoggedIn && (userId?.toLongOrNull() ?: 0L) != 0L) {
+                    fetchDashboardSummaryData()
+                }
+            }.launchIn(viewModelScope) // Launch this collector
+
+            // Initial token validation
+            val token = tokenManager.getToken()
+            Log.d(
+                "DashboardViewModel",
+                "Initial token validation started with token: |${token ?: "null"}|"
             )
-        }
+            if (token != null) {
+                _uiState.update { it.copy(isLoading = true, errorMessage = null) } // Show loading while validating token
+                when (isTokenValid(token)) {
+                    true -> {
+                        Log.d("DashboardViewModel", "Token is valid on startup.")
+                        _uiState.update { it.copy(isLoading = false) }
+                    }
+                    else -> { // "invalid" or "loading" -> treat as invalid for startup check
+                        Log.w("DashboardViewModel", "Token invalid or validation failed on startup. Logging out.")
+                        _uiState.update { it.copy(
+                            isLoading = false,
+                            errorMessage = "Session expired. Please log in again."
+                        ) }
+                        handleTokenInvalidation() // This will call logout()
+                    }
+                }
+            } else {
+                // No token found, user is definitively not logged in.
+                Log.d("DashboardViewModel", "No token found on startup. Setting isLoggedIn=false.")
+                _uiState.update { it.copy(isLoading = false, isLoggedIn = false) }
+                // Ensure DataStore reflects this if it somehow got out of sync
+                userPreferences.setLoggedIn(false)
+            }
 
-        // Collect user preferences from the DataStore asynchronously
-        // and update the UI state when these values change.
-        viewModelScope.launch {
-            userPreferences.isTeacher.collectLatest { isTeacherValue ->
-                Log.d("DashboardViewModel", "Collected isTeacher: $isTeacherValue")
-                _uiState.update { it.copy(isTeacher = isTeacherValue) }
-                // Trigger data fetch if user role changes or becomes available
-                fetchDashboardSummaryData()
+            // Set up default cards and nav items regardless of login status
+            _uiState.update { currentState ->
+                currentState.copy(
+                    cards = getDefaultDashboardCards(),
+                    navItems = dashboardRoutes,
+                    selectedNavIndex = 0
+                )
             }
         }
+    }
 
-        viewModelScope.launch {
-            userPreferences.userId.collectLatest { idValue ->
-                Log.d("DashboardViewModel", "Collected userId: $idValue")
-                _uiState.update { it.copy(id = idValue?.toLongOrNull() ?: 0L) }
-                // Trigger data fetch if user ID changes or becomes available
-                fetchDashboardSummaryData()
-            }
+    private suspend fun isTokenValid(token: String): Boolean {
+        if (token.isBlank()) {
+            Log.w("DashboardViewModel", "Token is blank, considered invalid.")
+            return false
         }
 
-        // Initial fetch of dashboard summary data
-        // This will run immediately and also be triggered by the collectLatest blocks
-        // when userPreferences provide their initial or updated values.
-        fetchDashboardSummaryData()
+        // Server-side validation
+        return when (val result = authRepository.validateToken(token)) {
+            is Resource.Success -> {
+                Log.d("DashboardViewModel", "Online token validation: ${result.data}")
+                true
+            }
+            is Resource.Error -> {
+                Log.e("DashboardViewModel", "Server token validation failed: ${result.message}.")
+                false
+            }
+            is Resource.Loading -> {
+                Log.d("DashboardViewModel", "Token validation is in loading state.")
+                false
+            }
+        }
     }
 
     /**
-     * Fetches summary data for dashboard cards, such as attendance percentage or assignment counts.
-     * This function should be called when user role or ID is confirmed.
+     * Handles token invalidation by logging out the user and resetting UI state.
      */
-    private fun fetchDashboardSummaryData() {
+    private fun handleTokenInvalidation() {
+        Log.d("DashboardViewModel", "Token invalid or expired. Clearing user data.")
         viewModelScope.launch {
-            // Retrieve the latest user ID and teacher status from the UI state (updated by collects)
-            val currentUserId = _uiState.value.id
-            val currentUserIsTeacher = _uiState.value.isTeacher
-
-            if (currentUserId == 0L) {
-                Log.w("DashboardViewModel", "User ID is 0, cannot fetch summary data yet.")
-                // Optionally update UI state to reflect no data/loading/error
-                return@launch
-            }
-
-            // --- Placeholder for actual data fetching logic ---
-            // You would perform API calls here to get the summary data for each card.
-            // Example:
-            // val attendanceSummary = if (!currentUserIsTeacher) studentRepository.getOverallAttendance(currentUserId) else teacherRepository.getTeacherClassAttendanceSummary(currentUserId)
-            // val assignmentsCount = if (!currentUserIsTeacher) studentRepository.getPendingAssignmentsCount(currentUserId) else teacherRepository.getAssignmentsToGradeCount(currentUserId)
-            // --- End Placeholder ---
-
-            // Simulate fetching data (replace with actual repository calls)
-            val fetchedAttendancePercent: Double? = 85.0 // Example student attendance
-            val fetchedAssignmentsBadge: Int? = 3    // Example assignments count
-
-            // Update the UI state with the fetched data
-            _uiState.update { currentState ->
-                val updatedCards = currentState.cards.map { card ->
-                    when (card.title) {
-                        "Attendance" -> card.copy(extra = fetchedAttendancePercent?.toInt()?.toString() + "%")
-                        "Assignments" -> card.copy(badge = fetchedAssignmentsBadge)
-                        else -> card
-                    }
-                }
-                currentState.copy(cards = updatedCards)
-            }
-            Log.d("DashboardViewModel", "Dashboard summary data fetched and UI state updated.")
+            logout()
+            _uiState.update { it.copy(errorMessage = "Your session has expired. Please log in again.") }
         }
     }
 
-
-    fun onLogout() {
+    /**
+     * Clears user session data and resets the UI state to a logged-out condition.
+     */
+    fun logout() {
         viewModelScope.launch {
             tokenManager.clearToken()
-            userPreferences.setLoggedIn(false) // Set the login status in preferences
-            userPreferences.clearUserInfo() // Also clear userId and isTeacher from preferences
+            userPreferences.clearUserInfo() // Clears userId, isTeacher, and isLoggedIn in DataStore
 
-            // Reset the UI state to its initial, default values after logout
             _uiState.update {
-                DashboardUiState(
-                    cards = listOf( // Re-initialize default cards
-                        DashboardCard(
-                            title = "Attendance",
-                            iconRes = Icons.Rounded.FileDownloadDone,
-                            colors = listOf(Color(0xFF46A6FF), Color(0xFF4288FD)),
-                            extra = null,
-                            destination = AttendanceRoute.route
-                        ),
-                        DashboardCard(
-                            title = "Assignments",
-                            iconRes = Icons.AutoMirrored.Rounded.Assignment,
-                            colors = listOf(Color(0xFFFF7043), Color(0xFFF4511E)),
-                            badge = null,
-                            destination = AssignmentsRoute.route
-                        )
-                    ),
+                DashboardUiState( // Reset to initial dashboard state for logged out user
+                    isLoggedIn = false,
+                    isLoading = false,
+                    cards = getDefaultDashboardCards(),
                     navItems = dashboardRoutes,
                     selectedNavIndex = 0,
                     isTeacher = false,
-                    id = 0L
+                    userId = 0L,
+                    errorMessage = null
                 )
             }
             Log.d("DashboardViewModel", "User logged out. UI state reset.")
         }
     }
 
+    /**
+     * Fetches dynamic dashboard summary data based on user role and updates the UI state.
+     */
+    private fun fetchDashboardSummaryData() {
+        viewModelScope.launch {
+            // Avoid redundant fetches if not logged in or user ID is missing
+            if (!_uiState.value.isLoggedIn || _uiState.value.userId == 0L) {
+                Log.d("DashboardViewModel", "Not logged in or user ID missing, skipping data fetch.")
+                _uiState.update { it.copy(isLoading = false, errorMessage = null) }
+                return@launch
+            }
+
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+
+            val currentUserId = _uiState.value.userId
+            val currentUserIsTeacher = _uiState.value.isTeacher
+
+            try {
+                // Example: Fetching attendance and assignments data
+                // Replace with actual API calls to studentRepository/teacherRepository
+                val fetchedAttendancePercent: Double?
+                val fetchedAssignmentsBadge: Int?
+
+                if (currentUserIsTeacher) {
+                    // Example teacher data fetching
+                    // val teacherAttendance = teacherRepository.getTeacherAttendanceSummary(currentUserId)
+                    // val assignmentsToGrade = teacherRepository.getAssignmentsToGradeCount(currentUserId)
+                    fetchedAttendancePercent = 90.0 // Placeholder
+                    fetchedAssignmentsBadge = 5 // Placeholder
+                } else {
+                    // Example student data fetching
+                    // val studentAttendance = studentRepository.getOverallAttendance(currentUserId)
+                    // val pendingAssignments = studentRepository.getPendingAssignmentsCount(currentUserId)
+                    fetchedAttendancePercent = 85.0 // Placeholder
+                    fetchedAssignmentsBadge = 3 // Placeholder
+                }
+
+                // Update the cards in the UI state
+                _uiState.update { currentState ->
+                    val updatedCards = currentState.cards.map { card ->
+                        when (card.title) {
+                            "Attendance" -> card.copy(extra = fetchedAttendancePercent?.toInt()?.toString() + "%")
+                            "Assignments" -> card.copy(badge = fetchedAssignmentsBadge)
+                            else -> card
+                        }
+                    }
+                    currentState.copy(cards = updatedCards, isLoading = false)
+                }
+                Log.d("DashboardViewModel", "Dashboard summary data fetched and UI state updated.")
+
+            } catch (e: Exception) {
+                Log.e("DashboardViewModel", "Error fetching dashboard summary: ${e.message}", e)
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Failed to load dashboard data. Please try again.") }
+            }
+        }
+    }
+
+    /**
+     * Returns a default list of dashboard cards.
+     */
+    private fun getDefaultDashboardCards(): List<DashboardCard> {
+        return listOf(
+            DashboardCard(
+                title = "Attendance",
+                iconRes = Icons.Rounded.FileDownloadDone,
+                colors = listOf(Color(0xFF46A6FF), Color(0xFF4288FD)),
+                extra = null,
+                destination = AttendanceRoute.route
+            ),
+            DashboardCard(
+                title = "Assignments",
+                iconRes = Icons.AutoMirrored.Rounded.Assignment,
+                colors = listOf(Color(0xFFFF7043), Color(0xFFF4511E)),
+                badge = null,
+                destination = AssignmentsRoute.route
+            )
+        )
+    }
+
     fun onNavItemSelected(index: Int) {
         _uiState.update { it.copy(selectedNavIndex = index) }
     }
-
-    // These functions are no longer needed as `isTeacher` and `id` are collected directly
-    // from userPreferences and stored in `_uiState`.
-    // fun getIsTeacher(): Boolean { return userRepository.isTeacher() ?: false }
-    // fun getId(): Long { return userRepository.getUserId() ?: 0L }
 }

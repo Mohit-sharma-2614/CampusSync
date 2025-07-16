@@ -95,17 +95,6 @@ fun AssignmentDialog(
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // ❌ Cancel Button
-//                    Button(
-//                        onClick = onDismiss,
-//                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C63FF)),
-//                        shape = RoundedCornerShape(16.dp),
-//                        elevation = ButtonDefaults.buttonElevation(6.dp)
-//                    ) {
-//                        Text(text = "Cancel", color = Color.White)
-//                    }
-
-                    // ✅ Logout Button
                     Button(
                         onClick = onConfirm,
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE63946)),

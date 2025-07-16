@@ -14,4 +14,20 @@ interface EnrollmentApiService {
         @Query("enrollmentId") enrollmentId: Long
     ): Response<Enrollment>
 
+    @GET("enrollment/student")
+    suspend fun getEnrollmentsByStudentId(
+        @Query("studentId") studentId: Long
+    ): Response<List<Enrollment>>
+
+    @GET("enrollment/subject")
+    suspend fun getEnrollmentsBySubjectId(
+        @Query("subjectId") subjectId: Long
+    ): Response<List<Enrollment>>
+
+    @GET("enrollment/student-subject")
+    suspend fun getEnrollmentsByStudentIdAndSubjectId(
+        @Query("studentId") studentId: Long,
+        @Query("subjectId") subjectId: Long
+    ): Response<List<Enrollment>>
+
 }

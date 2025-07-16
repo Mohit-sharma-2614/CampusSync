@@ -16,13 +16,18 @@ class AuthInterceptor @Inject constructor(
         val requestBuilder = request.newBuilder()
 
         val isLoginRequest = request.url.encodedPath.contains("login")
+        val isTokenRequest = request.url.encodedPath.contains("api/auth/validate")
 
         Log.d("AuthInterceptor", "Intercepting request to: ${request.url}")
         Log.d("AuthInterceptor", "Is login request: $isLoginRequest")
+        Log.d("AuthInterceptor", "Is token request: $isTokenRequest")
         Log.d("AuthInterceptor", "Current token from TokenManager: ${if (token.isNullOrEmpty()) "NULL/EMPTY" else "PRESENT"}")
 
-        if (!token.isNullOrEmpty() && !isLoginRequest) {
-            requestBuilder.addHeader("Authorization", "Bearer $token")
+        if (!token.isNullOrEmpty() && !isLoginRequest && !isTokenRequest) {
+            Log.d("AuthInterceptor", "Attempting to add Authorization header with token: |$token|")
+            Log.d("AuthInterceptor", "|${("Bearer $token").trim()}|")
+            // --- AND ALSO TRIM HERE FOR DOUBLE CHECKING ---
+            requestBuilder.addHeader("Authorization", ("Bearer $token").trim()) // Defensive trimming
             Log.d("AuthInterceptor", "Adding Authorization header.")
         } else if (token.isNullOrEmpty() && !isLoginRequest) {
             Log.w("AuthInterceptor", "No token available for authenticated request: ${request.url}")
@@ -31,24 +36,5 @@ class AuthInterceptor @Inject constructor(
         }
 
         return chain.proceed(requestBuilder.build())
-    }
-}
-
-// TokenExpirationInterceptor.kt
-class TokenExpirationInterceptor @Inject constructor(
-    private val tokenManager: TokenManager
-) : Interceptor {
-    override fun intercept(chain: Interceptor.Chain): Response {
-        val request = chain.request()
-        val response = chain.proceed(request)
-
-        if (response.code == 401) {
-            Log.e("TokenExpiration", "Received 401 Unauthorized for URL: ${request.url}")
-            Log.e("TokenExpiration", "Clearing token due to 401.")
-            tokenManager.clearToken()
-            // In a real app, you might also want to notify the UI to navigate to login.
-            // This could be done via a shared Flow or Channel.
-        }
-        return response
     }
 }

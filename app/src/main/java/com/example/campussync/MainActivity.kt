@@ -26,9 +26,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CampusSyncTheme {
-                AppNavigation(
-
-                )
+                AppNavigation()
             }
         }
     }

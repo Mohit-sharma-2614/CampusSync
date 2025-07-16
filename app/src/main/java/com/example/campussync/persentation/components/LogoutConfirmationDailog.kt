@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,7 +34,7 @@ fun LogoutConfirmationDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(24.dp),
-            color = Color(0xFF1E1E2C), // Dark background
+            color = MaterialTheme.colorScheme.surfaceContainer,
             tonalElevation = 8.dp,
             modifier = Modifier
                 .padding(16.dp)
@@ -48,6 +49,7 @@ fun LogoutConfirmationDialog(
                 Text(
                     text = "🚪",
                     fontSize = 48.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
                         .scale(1.2f)
                         .graphicsLayer {
@@ -61,7 +63,7 @@ fun LogoutConfirmationDialog(
                     text = "Log Out?",
                     fontWeight = FontWeight.Bold,
                     fontSize = 22.sp,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -69,7 +71,7 @@ fun LogoutConfirmationDialog(
                 Text(
                     text = "Are you sure you want to logout from the app?",
                     textAlign = TextAlign.Center,
-                    color = Color.LightGray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 16.sp
                 )
 
@@ -82,21 +84,27 @@ fun LogoutConfirmationDialog(
                     // ❌ Cancel Button
                     Button(
                         onClick = onDismiss,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C63FF)),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        ),
                         shape = RoundedCornerShape(16.dp),
                         elevation = ButtonDefaults.buttonElevation(6.dp)
                     ) {
-                        Text(text = "Cancel", color = Color.White)
+                        Text(text = "Cancel")
                     }
 
                     // ✅ Logout Button
                     Button(
                         onClick = onConfirmLogout,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE63946)),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        ),
                         shape = RoundedCornerShape(16.dp),
                         elevation = ButtonDefaults.buttonElevation(6.dp)
                     ) {
-                        Text(text = "Logout", color = Color.White)
+                        Text(text = "Logout")
                     }
                 }
             }

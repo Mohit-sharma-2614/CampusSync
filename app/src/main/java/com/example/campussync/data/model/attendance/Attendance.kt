@@ -1,7 +1,7 @@
-package com.example.campussync.data.model
+package com.example.campussync.data.model.attendance
 
+import com.example.campussync.data.model.Subject
 import com.example.campussync.data.model.student.StudentLoginResponse
-import java.time.LocalDate
 
 data class Attendance(
     val id: Long,

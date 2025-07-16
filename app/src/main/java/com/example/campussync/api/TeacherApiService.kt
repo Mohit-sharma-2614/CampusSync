@@ -9,18 +9,19 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface TeacherApiService {
 //    @POST("teacher/login")
 //    suspend fun loginTeacher(@Body request: TeacherLoginRequest): TeacherLoginResponse // Retrofit returns the direct type
 
-    @GET("teacher/{id}")
-    suspend fun getTeacherById(@Path("id") teacherId: Long): Response<TeacherLoginResponse>
+    @GET("teacher")
+    suspend fun getTeacherById(@Query("teacherId") teacherId: Long): Response<TeacherLoginResponse>
 
     @GET("teachers")
     suspend fun getAllTeachers(): Response<List<TeacherLoginResponse>>
 
-    @PUT("teacher/update") // Or @POST, depending on your API
+    @PUT("teacher/update")
     suspend fun updateTeacher(@Body teacher: TeacherLoginRequest): Response<TeacherLoginResponse>
 
     @DELETE("teacher/{id}")

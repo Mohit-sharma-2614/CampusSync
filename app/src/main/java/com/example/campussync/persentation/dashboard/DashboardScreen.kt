@@ -1,5 +1,11 @@
 package com.example.campussync.persentation.dashboard
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,9 +35,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -41,13 +49,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.campussync.persentation.components.AnimatedScaleOnDataLoad
 import com.example.campussync.persentation.components.LogoutConfirmationDialog
+import com.example.campussync.utils.ConnectivityObserver
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,22 +66,42 @@ import com.example.campussync.persentation.components.LogoutConfirmationDialog
 fun DashboardScreen(
     onCardClick: (DashboardCard) -> Unit,
     onLogOutClick: () -> Unit,
+    onNavigateToLoginScreen: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
+    val connectivityStatus by viewModel.connectivityStatus.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val scale = AnimatedScaleOnDataLoad(!uiState.cards.isEmpty())
 
     // Show logout confirmation dialog
     if (showDialog) {
         LogoutConfirmationDialog(
             onDismiss = { showDialog = false },
             onConfirmLogout = {
-                viewModel.onLogout()
+                viewModel.logout()
                 showDialog = false
                 onLogOutClick() // Navigate away after successful logout
             }
         )
+    }
+    if (!uiState.isLoggedIn) {
+        onNavigateToLoginScreen()
+    }
+
+    // Show snackbar for internet connectivity
+    LaunchedEffect(connectivityStatus) {
+        if (connectivityStatus == ConnectivityObserver.Status.Disconnected) {
+            snackbarHostState.currentSnackbarData?.dismiss() // Dismiss any existing snackbar
+            snackbarHostState.showSnackbar(
+                message = "Internet is turned off. Please check your connection.",
+                duration = SnackbarDuration.Indefinite // Keep visible until reconnected
+            )
+        } else {
+            snackbarHostState.currentSnackbarData?.dismiss() // Dismiss when reconnected
+        }
     }
 
     // Observe error messages from the ViewModel and show a Snackbar
@@ -85,21 +116,40 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("CampusSync", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    // Consider adding actual navigation drawer logic here if 'Menu' implies it
-                    IconButton(onClick = { /* TODO: Open Navigation Drawer */ }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
-                    }
+                title = {
+                    Text(
+                        "CampusSync",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 },
+//                navigationIcon = {
+//                    // Consider adding actual navigation drawer logic here if 'Menu' implies it
+//                    IconButton(onClick = { /* TODO: Open Navigation Drawer */ }) {
+//                        Icon(
+//                            Icons.Default.Menu,
+//                            contentDescription = "Menu",
+//                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+//                        )
+//                    }
+//                },
                 actions = {
                     IconButton(onClick = { showDialog = true }) {
-                        Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = "Logout")
+                        Icon(
+                            Icons.AutoMirrored.Rounded.Logout,
+                            contentDescription = "Logout",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) } // Integrate SnackbarHost
+        snackbarHost = { SnackbarHost(snackbarHostState) }, // Integrate SnackbarHost
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         // Handle loading state
         if (uiState.isLoading) {
@@ -109,7 +159,9 @@ fun DashboardScreen(
                     .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
         // Handle error state (if not already handled by SnackbarHost)
@@ -155,10 +207,13 @@ fun DashboardScreen(
                         )
                     }
                 } else {
+
                     items(uiState.cards) { card ->
                         DashboardCard(
                             card = card,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .scale(scale),
                             onClick = { onCardClick(card) } // Pass the whole card object
                         )
                     }
@@ -175,17 +230,25 @@ private fun DashboardCard(
     onClick: () -> Unit
 ) {
     val shape = RoundedCornerShape(24.dp)
-    val gradient = Brush.linearGradient(colors = card.colors)
+    // Use Material Design 3 color tokens for the gradient
+    val gradient = Brush.linearGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primary,
+            MaterialTheme.colorScheme.secondary
+        )
+    )
 
     Card(
         onClick = onClick,
         modifier = modifier.heightIn(min = 140.dp),
         shape = shape,
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent) // Card itself is transparent
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
     ) {
         Box(
             modifier = Modifier
-                .background(gradient, shape = shape) // Apply background with shape to the Box
+                .background(gradient, shape = shape)
                 .fillMaxSize()
                 .padding(20.dp)
         ) {
@@ -195,15 +258,15 @@ private fun DashboardCard(
             ) {
                 Icon(
                     imageVector = card.iconRes,
-                    contentDescription = null, // Content description for icons should be provided if meaningful
-                    tint = Color.White,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(32.dp)
                 )
                 Text(
                     text = card.title,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -214,8 +277,8 @@ private fun DashboardCard(
                 // Ensure badge is only shown if value > 0
                 if (value > 0) {
                     Badge(
-                        containerColor = Color.White.copy(alpha = 0.2f),
-                        contentColor = Color.White,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.2f),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.align(Alignment.TopEnd)
                     ) {
                         Text(value.toString())
@@ -228,7 +291,7 @@ private fun DashboardCard(
                     text = extra,
                     style = MaterialTheme.typography.headlineLarge.copy(
                         fontWeight = FontWeight.Black,
-                        color = Color.White.copy(alpha = 0.15f)
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)
                     ),
                     modifier = Modifier.align(Alignment.BottomEnd)
                 )
@@ -237,22 +300,3 @@ private fun DashboardCard(
     }
 }
 
-//@Composable
-//fun LogoutConfirmationDialog(
-//    onDismiss: () -> Unit,
-//    onConfirmLogout: () -> Unit
-//) {
-//    // Implement your dialog here
-//    // Example:
-//    // AlertDialog(
-//    //     onDismissRequest = onDismiss,
-//    //     title = { Text("Logout") },
-//    //     text = { Text("Are you sure you want to log out?") },
-//    //     confirmButton = {
-//    //         Button(onClick = onConfirmLogout) { Text("Confirm") }
-//    //     },
-//    //     dismissButton = {
-//    //         Button(onClick = onDismiss) { Text("Cancel") }
-//    //     }
-//    // )
-//}

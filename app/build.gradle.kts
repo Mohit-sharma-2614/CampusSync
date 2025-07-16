@@ -52,6 +52,25 @@ dependencies {
 //    implementation(libs.retrofit2.kotlinx.serialization.converter)
 //    implementation(libs.converter.kotlinx.serialization)
 //    implementation(libs.kotlinx.serialization.json)
+
+    // ZXing core for QR code generation
+    implementation("com.google.zxing:core:3.5.3")
+
+    // CameraX dependencies
+    val cameraxVersion = "1.3.4" // Check for the latest stable version
+    implementation("androidx.camera:camera-core:$cameraxVersion")
+    implementation("androidx.camera:camera-camera2:$cameraxVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+    implementation("androidx.camera:camera-view:$cameraxVersion")
+    implementation("androidx.camera:camera-extensions:$cameraxVersion") // Optional, but good for camera features
+
+    // ML Kit Barcode Scanning
+    implementation("com.google.mlkit:barcode-scanning:17.2.0") // Check for the latest version
+    // Kotlin Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0") // Check for the latest version
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
+
+
     implementation("androidx.security:security-crypto:1.0.0")
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     implementation("com.auth0:java-jwt:4.4.0")

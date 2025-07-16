@@ -11,6 +11,7 @@ import com.example.campussync.data.model.teacher.TeacherLoginResponse
 import com.example.campussync.data.repository.AuthRepository
 import com.example.campussync.data.repository.StudentRepository
 import com.example.campussync.data.repository.TeacherRepository
+import com.example.campussync.utils.ConnectivityObserver
 import com.example.campussync.utils.Resource
 import com.example.campussync.utils.TokenManager
 import com.example.campussync.utils.UserPreferences
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -32,7 +34,7 @@ data class LoginState(
     val isLoggedIn: Boolean = false,
     val email: String = "",
     val password: String = "",
-    val isTeacherLoginAttempt: Boolean = true, // Renamed for clarity: reflects the role chosen for login attempt
+    val isTeacherLoginAttempt: Boolean = false, // Renamed for clarity: reflects the role chosen for login attempt
     val errorMessage: String? = null,
     val token: String? = null,
     val student: StudentLoginResponse? = null,
@@ -46,16 +48,17 @@ class LoginViewModel @Inject constructor(
     private val teacherRepository: TeacherRepository,
     private val studentRepository: StudentRepository,
     private val authRepository: AuthRepository,
-    // private val userRepository: UserRepository, // Only if you plan to use it
     private val userPreferences: UserPreferences,
+    private val connectivityObserver: ConnectivityObserver,
     private val tokenManager: TokenManager
 ) : ViewModel() {
+
+    val connectivityStatus: StateFlow<ConnectivityObserver.Status> = connectivityObserver.observe()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ConnectivityObserver.Status.Disconnected)
 
     private val _loginState = MutableStateFlow(LoginState())
     val loginState: StateFlow<LoginState> = _loginState.asStateFlow()
 
-    // Expose these directly from UserPreferences, but collect them into StateFlows
-    // for easier consumption in the UI.
     val isLoggedIn: StateFlow<Boolean> = userPreferences.isLoggedIn.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -88,72 +91,58 @@ class LoginViewModel @Inject constructor(
     }
 
     init {
-        // Collect from userPreferences to update the internal loginState as well,
-        // ensuring consistency and allowing LoginState to be the single source of truth for UI.
-        logForDebug()
+
         viewModelScope.launch {
+
             userPreferences.isLoggedIn.collect { loggedIn ->
                 _loginState.update { it.copy(isLoggedIn = loggedIn) }
             }
-        }
-        viewModelScope.launch {
-            userPreferences.userId.collect { id ->
-                _loginState.update { it.copy(currentUserId = id) }
-            }
-        }
-        viewModelScope.launch {
-            userPreferences.isTeacher.collect { teacherStatus ->
-                _loginState.update { it.copy(currentUserIsTeacher = teacherStatus) }
-            }
-        }
 
-        // Initial token validation and state setup
-        viewModelScope.launch {
-            val token = tokenManager.getToken()
-            if (token != null) {
-                when (val validationResult = isTokenValid(token)) {
-                    "valid" -> {
-                        _loginState.update {
-                            it.copy(
-                                isLoggedIn = true,
-                                token = token,
-                                isLoading = false
-                            )
-                        }
-                        // No need to set user info here as it should be persisted by previous login
-                        // or fetched if a refresh token mechanism is in place.
-                        // For now, rely on `userPreferences` to provide the stored userId and isTeacher.
-                    }
-                    else -> {
-                        // Token is invalid or expired
-                        handleTokenInvalidation()
-                    }
+            launch {
+                userPreferences.userId.collect { id ->
+                    _loginState.update { it.copy(currentUserId = id) }
                 }
-            } else {
-                // No token found
-                _loginState.update { it.copy(isLoading = false, isLoggedIn = false) }
+            }
+            launch {
+                userPreferences.isTeacher.collect { teacherStatus ->
+                    _loginState.update { it.copy(currentUserIsTeacher = teacherStatus) }
+                }
             }
         }
-        Log.d("LoginViewModel","UserPrefs: ${userId.value} ${isTeacher.value} ${isLoggedIn.value}")
-    }
 
-    fun logout() {
-        viewModelScope.launch {
-            userPreferences.clearUserInfo() // Clears userId, isTeacher, and isLoggedIn
-            tokenManager.clearToken()
-            _loginState.update {
-                it.copy(
-                    isLoggedIn = false,
-                    token = null,
-                    student = null,
-                    teacher = null,
-                    errorMessage = null,
-                    currentUserId = null,
-                    currentUserIsTeacher = false
-                )
-            }
-            _loginEvents.send(LoginEvent.Success) // Or a specific LogoutEvent if desired
-        }
+//        viewModelScope.launch {
+//            logForDebug()
+//            val token = tokenManager.getToken()
+//            val initialLoggedIn = userPreferences.isLoggedIn.first()
+//            val initialUserId = userPreferences.userId.first()
+//            val initialIsTeacher = userPreferences.isTeacher.first()
+//            _loginState.update {
+//                it.copy(
+//                    currentUserId = initialUserId,
+//                    currentUserIsTeacher = initialIsTeacher,
+//                    isLoggedIn = initialLoggedIn
+//                )
+//            }
+//
+//            if (token != null) {
+//                val validationResult = isTokenValid(token)
+//            when (validationResult) {
+//                "valid" -> {
+//                    _loginState.update {
+//                        it.copy(
+//                            isLoggedIn = true,
+//                            token = token,
+//                            isLoading = false
+//                        )
+//                    }
+//                }
+//                else -> handleTokenInvalidation()
+//            }
+//        } else {
+//            _loginState.update { it.copy(isLoading = false, isLoggedIn = false) }
+//        }
+//
+//        }
     }
 
     /**
@@ -163,11 +152,16 @@ class LoginViewModel @Inject constructor(
      */
     fun onLoginSuccess(isTeacherStatus: Boolean, id: Long) {
         viewModelScope.launch {
-            Log.d("LoginViewModel", "Persisting user info: $id, $isTeacherStatus")
-            userPreferences.setUserInfo(id.toString(), isTeacherStatus)
-            // The `LoginState` will be updated by the `collect` calls in the init block.
-            // Dispatch a success event.
-            _loginEvents.send(LoginEvent.Success)
+            try {
+                userPreferences.setUserInfo(id.toString(), isTeacherStatus)
+                userPreferences.setLoggedIn(true)
+                _loginEvents.send(LoginEvent.Success)
+                _loginState.update { it.copy(isLoading = false, errorMessage = null, isLoggedIn = true) }
+            } catch (e: Exception) {
+                Log.e("LoginViewModel", "Failed to persist login state: ${e.message}")
+                _loginEvents.send(LoginEvent.Error("Failed to save login state."))
+                _loginState.update { it.copy(isLoading = false, errorMessage = "Failed to save login state.") }
+            }
         }
     }
 
@@ -193,7 +187,12 @@ class LoginViewModel @Inject constructor(
 
                         if (newToken != null && userId != null) {
                             Log.d("LoginViewModel", "Login successful. Saving token: ${newToken.substring(0, 10)}... (truncated)")
-                            tokenManager.saveToken(newToken)
+                            Log.d("LoginViewModel", "RAW Token from API: |${newToken}|")
+                            Log.d("LoginViewModel", "Length of RAW Token: ${newToken.length}")
+                            val trimmedToken = newToken.trim() // Make sure you are trimming before saving
+                            Log.d("LoginViewModel", "Trimmed Token for saving: |${trimmedToken}|")
+                            Log.d("LoginViewModel", "Length of TRIMMED Token: ${trimmedToken.length}")
+                            tokenManager.saveToken(trimmedToken)
                             onLoginSuccess(actualIsTeacherStatus, userId) // Persist user info
                         } else {
                             // Handle cases where token or ID might be missing from response
@@ -239,10 +238,10 @@ class LoginViewModel @Inject constructor(
         login(email, password)
     }
 
-    private suspend fun isTokenValid(token: String): String {
+    private suspend fun isTokenValid(token: String): Boolean {
         if (token.isBlank()) {
             Log.w("TokenValidation", "Token is blank, considered invalid.")
-            return "invalid"
+            return false
         }
 
         // Server-side validation
@@ -253,35 +252,19 @@ class LoginViewModel @Inject constructor(
                 result.data.valid
             }
             is Resource.Error -> {
-                Log.d("token", "Server token validation failed: ${result.message}. Falling back to local validation.")
-                try {
-                    val decodedJWT = JWT.decode(token)
-                    val expiration = decodedJWT.getClaim("exp").asLong()
-                    val currentTimeSeconds = System.currentTimeMillis() / 1000
-
-                    return if (expiration != null && expiration > currentTimeSeconds) {
-                        Log.d("token", "Local token valid (expires: $expiration, current: $currentTimeSeconds)")
-                        "valid"
-                    } else {
-                        Log.d("token", "Local token invalid/expired (expires: $expiration, current: $currentTimeSeconds)")
-                        "invalid"
-                    }
-                } catch (e: Exception) {
-                    Log.e("token", "Local token validation failed: ${e.message}")
-                    "invalid"
-                }
+                Log.d("token", "Server token validation failed: ${result.message}.")
+                false
             }
             is Resource.Loading -> {
                 Log.d("TokenValidation", "Token validation is in loading state.")
-                "loading"
+                false
             }
         }
     }
 
-    private fun handleTokenInvalidation() {
+    fun logout() {
         viewModelScope.launch {
-            Log.d("LoginViewModel", "Token invalid or expired. Clearing user data.")
-            userPreferences.clearUserInfo()
+            userPreferences.clearUserInfo() // Clears userId, isTeacher, and isLoggedIn
             tokenManager.clearToken()
             _loginState.update {
                 it.copy(
@@ -289,23 +272,23 @@ class LoginViewModel @Inject constructor(
                     token = null,
                     student = null,
                     teacher = null,
-                    errorMessage = "Session expired. Please log in again.",
+                    errorMessage = null,
                     currentUserId = null,
                     currentUserIsTeacher = false
                 )
             }
-            _loginEvents.send(LoginEvent.TokenExpired) // Notify UI about token expiration
+            _loginEvents.send(LoginEvent.Success) // Or a specific LogoutEvent if desired
         }
+    }
+
+    private fun handleTokenInvalidation() {
+        Log.d("LoginViewModel", "Token invalid or expired. Clearing user data.")
+        logout()
     }
 
     fun updateErrorMessage() {
         _loginState.update { it.copy(errorMessage = null) }
     }
-
-    // You can remove this now, as isLoggedIn is exposed via StateFlow from userPreferences.
-    // fun isLoggedIn(): Boolean {
-    //     return _loginState.value.isLoggedIn
-    // }
 
     fun updateEmail(email: String) {
         _loginState.update { it.copy(email = email) }
@@ -314,12 +297,6 @@ class LoginViewModel @Inject constructor(
     fun updatePassword(password: String) {
         _loginState.update { it.copy(password = password) }
     }
-
-    // You can remove this function as `isLoggedIn` is managed by `UserPreferences`
-    // and updated via the `collect` calls in the init block.
-    // fun updateIsLoggedIn(isLoggedIn: Boolean) {
-    //     _loginState.update { it.copy(isLoggedIn = isLoggedIn) }
-    // }
 
     fun updateLoginAttemptRole(isTeacher: Boolean) { // Renamed for clarity
         _loginState.update { it.copy(isTeacherLoginAttempt = isTeacher) }
@@ -346,10 +323,4 @@ class LoginViewModel @Inject constructor(
         login(email, password)
     }
 
-    // `onTokenExpired` is now called directly from `handleTokenInvalidation`
-    // and during initial token check.
-    // Consider if you need a separate public function for external triggers.
-    // fun onTokenExpired() {
-    //     handleTokenInvalidation()
-    // }
 }

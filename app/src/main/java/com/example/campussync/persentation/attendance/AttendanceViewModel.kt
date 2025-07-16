@@ -5,13 +5,14 @@ import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.campussync.data.model.Attendance
+import com.example.campussync.data.model.attendance.Attendance
 import com.example.campussync.data.model.Subject
+import com.example.campussync.data.model.teacher.TeacherLoginResponse
 import com.example.campussync.data.repository.AttendanceRepository
+import com.example.campussync.data.repository.EnrollmentRepository
 import com.example.campussync.data.repository.StudentRepository
 import com.example.campussync.data.repository.SubjectRepository
 import com.example.campussync.data.repository.TeacherRepository
-import com.example.campussync.data.repository.UserRepository
 import com.example.campussync.utils.Resource
 import com.example.campussync.utils.UserPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,42 +26,49 @@ import javax.inject.Inject
 import kotlin.random.Random
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest // Important for collecting from flows
-//region: Assuming these are your data classes and repositories
-// Make sure to define them if you haven't already
-// data class Attendance(...)
-// data class Subject(...)
-// data class Student(...) // Should have an 'id' and 'semester'
-// data class Teacher(...) // Should have an 'id' and 'name'
-// data class AttendanceCourseItem(val courseName: String, val lecturer: String, val percent: Int, val color: Color)
-// enum class AttendanceFilter { MONTH, YEAR, ALL } // Example filters
-// sealed class Resource<out T> { ... } // Your Resource class for API calls
-// class StudentRepository { suspend fun getStudentById(id: Long): Resource<Student> }
-// class TeacherRepository { /* potentially for teacher-specific data */ }
-// class SubjectRepository { suspend fun getAllSubjects(): Resource<List<Subject>> }
-// class AttendanceRepository { suspend fun getAllAttendance(): Resource<List<Attendance>> }
-// class UserPreferences {
-//     val isLoggedIn: Flow<Boolean>
-//     val userId: Flow<String?>
-//     val isTeacher: Flow<Boolean>
-// }
-//endregion
+import kotlinx.coroutines.flow.combine
+import java.time.LocalDate
+
+// Data classes for UI representation
+data class AttendanceCourseItem(
+    val courseName: String,
+    val lecturer: String,
+    val percent: Int,
+    val color: Color
+)
+
+enum class AttendanceFilter {
+    MONTH, SEMESTER, YEAR, ALL
+}
 
 data class AttendanceUiState(
-    val overallPercent: Double = 0.0,
+    val overallPercent: Double = 0.0, // More relevant for student view
     val selectedFilter: AttendanceFilter = AttendanceFilter.MONTH,
-    val courses: List<AttendanceCourseItem> = emptyList(),
-    val attendance: List<Attendance> = emptyList(),
-    val subjects: List<Subject> = emptyList(),
+    val courses: List<AttendanceCourseItem> = emptyList(), // Can be used for both, representing subjects
+    val attendance: List<Attendance> = emptyList(), // Raw attendance records (could be specific to student/subject)
+    val subjects: List<Subject> = emptyList(), // All subjects, for context or teacher's subjects
+    val currentTeacher: TeacherLoginResponse? = null, // For teacher's data
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
-    // Removed isTeacher, id, isLoggedIn as they are sourced from UserPreferences
+    val errorMessage: String? = null,
+    val teacherSubjectAttendanceSummary: Map<Long, TeacherSubjectAttendanceSummary> = emptyMap() // For teacher's view
 )
+
+data class TeacherSubjectAttendanceSummary(
+    val subjectId: Long,
+    val subjectName: String,
+    val totalStudents: Int, // Total unique students recorded for this subject
+    val presentStudents: Int, // Total 'Present' records for this subject
+    val overallClassPercentage: Double, // Overall class percentage for this subject
+    val latestAttendanceDate: String? = null // To show when attendance was last marked for this class
+)
+
 
 @HiltViewModel
 class AttendanceViewModel @Inject constructor(
     private val studentRepository: StudentRepository,
-    private val teacherRepository: TeacherRepository, // Injected but not used in current logic, keep if needed elsewhere
+    private val teacherRepository: TeacherRepository,
     private val subjectRepository: SubjectRepository,
+    private val enrollmentRepository: EnrollmentRepository,
     private val attendanceRepository: AttendanceRepository,
     private val userPreferences: UserPreferences
 ) : ViewModel() {
@@ -68,11 +76,9 @@ class AttendanceViewModel @Inject constructor(
     private val _attendanceUiState = MutableStateFlow(AttendanceUiState())
     val attendanceUiState: StateFlow<AttendanceUiState> = _attendanceUiState.asStateFlow()
 
-    // Expose these directly from UserPreferences, collected into StateFlows
-    // for easy consumption in Compose UI.
     val isLoggedIn: StateFlow<Boolean> = userPreferences.isLoggedIn.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000), // Keep subscription for 5 seconds after last collector
+        started = SharingStarted.WhileSubscribed(5000),
         initialValue = false
     )
 
@@ -89,36 +95,25 @@ class AttendanceViewModel @Inject constructor(
     )
 
     init {
-        // Log current user preferences values on ViewModel init
         Log.d("AttendanceViewModel", "UserPrefs on init: User ID: ${userId.value}, Is Teacher: ${isTeacher.value}, Is Logged In: ${isLoggedIn.value}")
 
-        // Collect user preferences to react to changes and trigger data loading
         viewModelScope.launch {
-            // Use combine if you need both userId and isTeacher to decide when to load data
-            // For simplicity, we'll collect userId and check isTeacher when userId is available.
-            userId.collectLatest { idString ->
-                val currentIsTeacher = isTeacher.value // Get the current value of isTeacher
-                Log.d("AttendanceViewModel", "User ID collected: ${idString}, Is Teacher: $currentIsTeacher")
+            combine(userId, isTeacher, isLoggedIn) { idString, isTeacherFlag, isLoggedInFlag ->
+                Triple(idString?.toLongOrNull() ?: 0L, isTeacherFlag, isLoggedInFlag)
+            }.collectLatest { (currentUserId, currentIsTeacher, currentIsLoggedIn) ->
+                Log.d("AttendanceViewModel", "Combined UserPrefs collected: ID=$currentUserId, Teacher=$currentIsTeacher, LoggedIn=$currentIsLoggedIn")
 
-                // Only proceed if a valid userId is available and the user is a student (if getData is for student)
-                // Or if the user is a teacher and you want to fetch teacher-specific data here.
-                if (!idString.isNullOrBlank() && !currentIsTeacher) { // Assuming getData is for students
-                    val studentId = idString.toLongOrNull()
-                    if (studentId != null && studentId != 0L) {
-                        Log.d("AttendanceViewModel", "Fetching student data for ID: $studentId")
-                        getData(studentId)
+                if (currentIsLoggedIn && currentUserId != 0L) {
+                    if (currentIsTeacher) {
+                        Log.d("AttendanceViewModel", "User is a teacher. Fetching teacher data for ID: $currentUserId")
+                        getTeacherData(currentUserId)
                     } else {
-                        Log.w("AttendanceViewModel", "Invalid student ID: $idString, skipping data fetch.")
-                        // Potentially update UI state to indicate no data for invalid ID
-                        _attendanceUiState.update { it.copy(isLoading = false, errorMessage = "Invalid user ID.") }
+                        Log.d("AttendanceViewModel", "User is a student. Fetching student data for ID: $currentUserId")
+                        getStudentData(currentUserId)
                     }
-                } else if (currentIsTeacher) {
-                    // TODO: Implement logic to fetch teacher-specific attendance data here
-                    // If teachers view attendance differently or need different data.
-                    Log.d("AttendanceViewModel", "User is a teacher. Implement teacher attendance data fetch.")
-                    _attendanceUiState.update { it.copy(isLoading = false) } // Stop loading if no teacher data fetch implemented yet
                 } else {
-                    Log.d("AttendanceViewModel", "User not logged in or ID not available yet. Waiting...")
+                    Log.d("AttendanceViewModel", "User not logged in or ID not available. Resetting state.")
+                    _attendanceUiState.update { AttendanceUiState() }
                 }
             }
         }
@@ -126,43 +121,47 @@ class AttendanceViewModel @Inject constructor(
 
     /**
      * Fetches and processes attendance data for a given student.
-     * This function should ideally be called when a valid studentId is confirmed.
+     * Uses optimized API call to fetch attendance specific to the student.
      * @param studentId The ID of the student for whom to fetch attendance data.
      */
-    private fun getData(studentId: Long) {
+    private fun getStudentData(studentId: Long) {
         viewModelScope.launch {
-            _attendanceUiState.update { it.copy(isLoading = true, errorMessage = null) } // Reset error on new data fetch
+            _attendanceUiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            // Fetch all necessary data concurrently
-            val subjectsResult = subjectRepository.getAllSubjects()
-            val attendanceResult = attendanceRepository.getAllAttendance()
+            // Fetch only student's attendance records
+            val studentAttendanceResult = attendanceRepository.getAttendanceByStudentId(studentId)
+            val enrollmentsResult = enrollmentRepository.getEnrollmentsByStudentId(studentId)
+            val subjectsResult = subjectRepository.getAllSubjects() // Still need all subjects for mapping course names/lecturers
             val studentResult = studentRepository.getStudentById(studentId)
 
-            // Check results from all repositories
             when {
-                subjectsResult is Resource.Success && attendanceResult is Resource.Success && studentResult is Resource.Success -> {
+                studentAttendanceResult is Resource.Success && subjectsResult is Resource.Success && studentResult is Resource.Success && enrollmentsResult is Resource.Success-> {
+                    val attendanceList = studentAttendanceResult.data // This is already student-specific
                     val subjectsList = subjectsResult.data
-                    val attendanceList = attendanceResult.data
-                    val studentSemester = studentResult.data.semester
-                    Log.d(
-                        "AttendanceViewModel",
-                        "Student ID: ${studentResult.data.id}, Semester: $studentSemester, Subjects: ${subjectsList.size}, Attendance: ${attendanceList.size}"
-                    )
+                    val enrollmentsList = enrollmentsResult.data
 
-                    // Map subjects to attendance items for UI display
+                    val studentSemester = studentResult.data.semester
+                    Log.d("AttendanceViewModel", "Student Data fetched. Attendance records: ${attendanceList.size}, Subjects: ${subjectsList.size}")
+
+                    // Now, filter subjects relevant to the student's semester to create course items
+                    val enrolledSubjectIds = enrollmentsList.map { it.subject.id }.toSet()
+                    val studentRelevantSubjects = subjectsList.filter { it.id in enrolledSubjectIds }
+
                     val courseItems = mapSubjectsToAttendanceItems(
-                        subjects = subjectsList,
-                        attendanceList = attendanceList,
+                        subjects = studentRelevantSubjects, // Pass only relevant subjects
+                        attendanceList = attendanceList, // This attendance list is already for the student
                         studentId = studentId,
                         semester = studentSemester
                     )
 
-                    // Calculate overall attendance percentage across all subjects for the student
                     val totalAttendance = courseItems.fold(0 to 0) { acc, item ->
+                        // When calculating overall, we are still operating on student-specific attendance
+                        val subjectMap = studentRelevantSubjects.associateBy { it.name }
+                        val subjectIdForCourse = subjectMap[item.courseName]?.id ?: 0
                         val (present, total) = calculateStudentAttendance(
-                            attendanceList = attendanceList,
+                            attendanceList = attendanceList, // Use the student-specific list
                             studentId = studentId,
-                            subjectId = subjectsList.find { it.name == item.courseName }?.id ?: 0,
+                            subjectId = subjectIdForCourse,
                             semester = studentSemester
                         )
                         (acc.first + present) to (acc.second + total)
@@ -174,36 +173,141 @@ class AttendanceViewModel @Inject constructor(
                         (totalAttendance.first.toDouble() / totalAttendance.second) * 100
                     }
 
-                    // Update UI state with fetched and processed data
                     _attendanceUiState.update {
                         it.copy(
                             overallPercent = overallPercent,
-                            selectedFilter = AttendanceFilter.MONTH, // Default filter
+                            selectedFilter = AttendanceFilter.MONTH,
                             isLoading = false,
                             errorMessage = null,
                             courses = courseItems,
-                            attendance = attendanceList,
-                            subjects = subjectsList
+                            attendance = attendanceList, // Store student's attendance
+                            subjects = subjectsList, // Store all subjects for potential future use or broader context
+                            currentTeacher = null,
+                            teacherSubjectAttendanceSummary = emptyMap()
                         )
                     }
                 }
                 else -> {
-                    Log.d(
-                        "AttendanceViewModel",
-                        "Error fetching data: Subjects: ${subjectsResult is Resource.Error}, Attendance: ${attendanceResult is Resource.Error}, Student: ${studentResult is Resource.Error}"
-                    )
-                    Log.d(
-                        "AttendanceViewModel", //Subjects: ${(subjectsResult as? Resource.Error)?.message}, Attendance: ${(attendanceResult as? Resource.Error)?.message},
-                        "Error messages: Student: ${(studentResult as? Resource.Error)?.message}"
-                    )
-                    // Handle errors if any of the data fetches fail
+                    val errorMsg = (studentAttendanceResult as? Resource.Error)?.message
+                        ?: (subjectsResult as? Resource.Error)?.message
+                        ?: (studentResult as? Resource.Error)?.message
+                        ?: "Failed to load student attendance data. Please check your connection."
+                    Log.e("AttendanceViewModel", "Error loading student data: $errorMsg")
                     _attendanceUiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = (subjectsResult as? Resource.Error)?.message
-                                ?: (attendanceResult as? Resource.Error)?.message
-                                ?: (studentResult as? Resource.Error)?.message
-                                ?: "Failed to load attendance data. Please try again." // Generic error
+                            errorMessage = errorMsg
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Fetches and processes data for a given teacher.
+     * Uses optimized API calls to fetch attendance specific to each subject.
+     * @param teacherId The ID of the teacher.
+     */
+    private fun getTeacherData(teacherId: Long) {
+        viewModelScope.launch {
+            _attendanceUiState.update { it.copy(isLoading = true, errorMessage = null) }
+
+            val teacherResult = teacherRepository.getTeacherById(teacherId)
+            val subjectsResult = subjectRepository.getAllSubjects() // Get all subjects to filter for teacher's subjects
+
+            when {
+                teacherResult is Resource.Success && subjectsResult is Resource.Success -> {
+                    val currentTeacher = teacherResult.data
+                    val allSubjects = subjectsResult.data
+
+                    val teacherSubjects = allSubjects.filter { it.teacher?.id == currentTeacher.id }
+                    Log.d("AttendanceViewModel", "Teacher ${currentTeacher.name} teaches ${teacherSubjects.size} subjects.")
+
+                    val summaryMap = mutableMapOf<Long, TeacherSubjectAttendanceSummary>()
+                    val allTeacherRelatedAttendance = mutableListOf<Attendance>() // Collect all relevant attendance
+
+                    teacherSubjects.forEach { subject ->
+                        // Fetch attendance specifically for this subject
+                        val attendanceForSubjectResult = attendanceRepository.getAttendanceBySubjectId(subject.id)
+
+                        if (attendanceForSubjectResult is Resource.Success) {
+                            val attendanceForSubject = attendanceForSubjectResult.data
+                            allTeacherRelatedAttendance.addAll(attendanceForSubject) // Add to a collective list
+
+                            val todayStudentsPresent = attendanceForSubject.count {
+                                it.status.equals("Present", ignoreCase = true) && it.date.equals(LocalDate.now().toString())
+                            }
+
+                            val totalStudentsPresent = attendanceForSubject.count {
+                                it.status.equals("Present", ignoreCase = true)
+                            }
+
+                            val totalStudents = attendanceForSubject.size
+
+                            val uniqueStudentsAttended = attendanceForSubject.map { it.student.id }.distinct().size
+                            val latestDate = attendanceForSubject.maxOfOrNull { it.date }
+
+                            // Count distinct lecture instances for this subject
+                            val distinctLectureDates = attendanceForSubject.map { it.date }.distinct().size
+                            val overallPercentage = if (distinctLectureDates == 0) {
+                                0.0
+                            } else {
+                                // This assumes 'presentStudents' is the count of 'Present' entries
+                                // and 'distinctLectureDates' is the total lectures
+                                // This isn't a true class percentage (students present / total enrolled * lectures)
+                                // but rather a density of 'Present' records vs. lectures.
+                                // For accurate class percentage, you'd need student enrollment per subject per lecture.
+                                (totalStudentsPresent.toDouble() / totalStudents) * 100 // Simplified for demo
+                            }
+
+                            summaryMap[subject.id] = TeacherSubjectAttendanceSummary(
+                                subjectId = subject.id,
+                                subjectName = subject.name,
+                                totalStudents = uniqueStudentsAttended, // Number of unique students who have attended
+                                presentStudents = todayStudentsPresent, // Total 'Present' records
+                                overallClassPercentage = overallPercentage,
+                                latestAttendanceDate = latestDate
+                            )
+                        } else if (attendanceForSubjectResult is Resource.Error) {
+                            Log.e("AttendanceViewModel", "Error fetching attendance for subject ${subject.name}: ${attendanceForSubjectResult.message}")
+                            // Optionally, add an entry to summaryMap indicating error or no data
+                            summaryMap[subject.id] = TeacherSubjectAttendanceSummary(
+                                subjectId = subject.id,
+                                subjectName = subject.name,
+                                totalStudents = 0,
+                                presentStudents = 0,
+                                overallClassPercentage = 0.0,
+                                latestAttendanceDate = "Error loading"
+                            )
+                        }
+                    }
+
+                    _attendanceUiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = null,
+                            currentTeacher = currentTeacher,
+                            subjects = teacherSubjects, // Only subjects taught by this teacher
+                            attendance = allTeacherRelatedAttendance, // Collective attendance for teacher's subjects
+                            teacherSubjectAttendanceSummary = summaryMap,
+                            overallPercent = 0.0,
+                            courses = emptyList()
+                        )
+                    }
+                }
+                else -> {
+                    val errorMsg = (teacherResult as? Resource.Error)?.message
+                        ?: (subjectsResult as? Resource.Error)?.message
+                        ?: "Failed to load teacher data. Please check your connection."
+                    Log.e("AttendanceViewModel", "Error loading teacher data: $errorMsg")
+                    _attendanceUiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = errorMsg,
+                            currentTeacher = null,
+                            subjects = emptyList(),
+                            teacherSubjectAttendanceSummary = emptyMap()
                         )
                     }
                 }
@@ -213,35 +317,39 @@ class AttendanceViewModel @Inject constructor(
 
     /**
      * Calculates the number of present lectures and total lectures for a specific student and subject.
-     * @param attendanceList List of all attendance records.
+     * This function now expects `attendanceList` to be *already filtered* for the specific student.
+     * @param attendanceList List of attendance records for the specific student.
      * @param studentId The ID of the student.
      * @param subjectId The ID of the subject.
      * @param semester The semester of the student.
      * @return A Pair where first is present count and second is total count.
      */
     fun calculateStudentAttendance(
-        attendanceList: List<Attendance>,
+        attendanceList: List<Attendance>, // This list should ideally already be for the student
         studentId: Long,
         subjectId: Long,
         semester: Int
     ): Pair<Int, Int> {
-        val subjectAttendance = attendanceList.filter {
-            // Filter attendance records relevant to the specific subject and semester
-            it.subject.id == subjectId && it.subject.semester == semester
+        val studentSubjectAttendance = attendanceList.filter {
+            // Further filter for the specific subject and semester within the student's records
+            it.subject.id == subjectId && it.student.id == studentId
         }
-        val studentAttendanceForSubject = subjectAttendance.filter {
-            // Further filter for the specific student within that subject and semester
-            it.student.id == studentId && it.student.semester == semester
+        val presentCount = studentSubjectAttendance.count {
+            it.status.equals("PRESENT", ignoreCase = true)
         }
-        val presentCount = studentAttendanceForSubject.count {
-            it.status.equals("Present", ignoreCase = true)
-        }
-        return presentCount to subjectAttendance.size // Total lectures for that subject in that semester
+        // Total lectures for that subject in that semester attended by this student
+        // Or, total lectures for that subject in that semester from the broader context
+        // If the API returns only records for lectures the student attended, this is correct.
+        // If it returns all lecture instances for the student, it needs adjustment.
+        // For simplicity, assuming it returns only records for the student.
+        // we can add the .distinct() function to make date distincts.
+        return presentCount to studentSubjectAttendance.map { it.date }.size
     }
 
     /**
      * Calculates the attendance percentage for a specific student and subject.
-     * @param attendanceList List of all attendance records.
+     * This function now expects `attendanceList` to be *already filtered* for the specific student.
+     * @param attendanceList List of attendance records for the specific student.
      * @param studentId The ID of the student.
      * @param subjectId The ID of the subject.
      * @param semester The semester of the student.
@@ -260,8 +368,8 @@ class AttendanceViewModel @Inject constructor(
     /**
      * Maps a list of subjects to a list of AttendanceCourseItem for UI display.
      * Calculates attendance percentage for each subject for the given student.
-     * @param subjects List of all subjects.
-     * @param attendanceList List of all attendance records.
+     * @param subjects List of subjects relevant to the student's semester.
+     * @param attendanceList List of attendance records for the specific student.
      * @param studentId The ID of the student.
      * @param semester The semester of the student.
      * @return List of AttendanceCourseItem.
@@ -273,17 +381,18 @@ class AttendanceViewModel @Inject constructor(
         semester: Int
     ): List<AttendanceCourseItem> {
         return subjects
-            .filter { it.semester == semester } // Only include subjects for the student's semester
             .map { subject ->
+                Log.d("AttendanceViewModel", "Processing subject: ${subject.name}")
                 val percentage = getAttendancePercentage(
                     attendanceList = attendanceList,
                     studentId = studentId,
                     subjectId = subject.id,
                     semester = semester
                 )
+                Log.d("AttendanceViewModel", "Subject: ${subject.name}, Percentage: $percentage")
                 AttendanceCourseItem(
                     courseName = subject.name,
-                    lecturer = subject.teacher?.name ?: "Unknown", // Assuming Subject has a 'teacher' property
+                    lecturer = subject.teacher?.name ?: "Unknown",
                     percent = percentage.toInt(),
                     color = randomBrightColor()
                 )
@@ -312,14 +421,5 @@ class AttendanceViewModel @Inject constructor(
      */
     fun updateSelectedFilter(filter: AttendanceFilter) {
         _attendanceUiState.update { it.copy(selectedFilter = filter) }
-        // TODO: If changing filter requires re-fetching or re-processing data,
-        //  call the appropriate function here.
-        //  e.g., if filter changes from MONTH to YEAR, you might need to
-        //  re-calculate percentages based on a different time range.
     }
-
-    // Removed the following functions as their state is now managed by UserPreferences:
-    // fun updateIsTeacher(isTeacher: Boolean) { ... }
-    // fun updateId(id: Long) { ... }
-    // fun updateIsLoggedIn(isLoggedIn: Boolean) { ... }
 }

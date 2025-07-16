@@ -11,6 +11,8 @@ import com.example.campussync.api.StudentApiService
 import com.example.campussync.api.SubjectApiService
 import com.example.campussync.api.TeacherApiService
 import com.example.campussync.utils.AuthInterceptor
+import com.example.campussync.utils.ConnectivityObserver
+import com.example.campussync.utils.TokenExpirationInterceptor
 import com.example.campussync.utils.TokenManager
 import com.example.campussync.utils.UserPreferences
 import dagger.Module
@@ -28,8 +30,13 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    const val BASE_URL = "http://10.0.2.2:8080/"
+    const val BASE_URL = "https://campussyncbackend-production.up.railway.app/"
 
+    @Provides
+    @Singleton
+    fun provideConnectivityObserver(@ApplicationContext context: Context): ConnectivityObserver {
+        return ConnectivityObserver(context)
+    }
 
     @Provides
     fun provideAuthInterceptor(tokenManager: TokenManager): AuthInterceptor = AuthInterceptor(tokenManager)

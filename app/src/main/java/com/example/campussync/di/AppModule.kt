@@ -17,6 +17,7 @@ import com.example.campussync.data.repository.impl.EnrollmentRepositoryImpl
 import com.example.campussync.data.repository.impl.StudentRepositoryImpl
 import com.example.campussync.data.repository.impl.SubjectRepositoryImpl
 import com.example.campussync.data.repository.impl.TeacherRepositoryImpl
+import com.example.campussync.utils.ConnectivityObserver
 import com.example.campussync.utils.UserPreferences
 import dagger.Binds
 import dagger.Module
@@ -29,6 +30,8 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 interface AppModule {
+
+
 
     @Binds
     @Singleton

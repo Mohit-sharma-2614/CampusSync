@@ -4,7 +4,8 @@ import android.net.http.HttpException
 import android.os.Build
 import androidx.annotation.RequiresExtension
 import com.example.campussync.api.AttendanceTokenApiService
-import com.example.campussync.data.model.AttendanceToken
+import com.example.campussync.data.model.attendanceToken.AttendanceToken
+import com.example.campussync.data.model.attendanceToken.AttendanceTokenReq
 import com.example.campussync.data.repository.AttendanceTokenRepository
 import com.example.campussync.utils.Resource
 import javax.inject.Inject
@@ -59,7 +60,7 @@ class AttendanceTokenRepositoryImpl @Inject constructor(
     }
 
     @RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
-    override suspend fun createAttendanceToken(attendanceToke: AttendanceToken): Resource<AttendanceToken> {
+    override suspend fun createAttendanceToken(attendanceToke: AttendanceTokenReq): Resource<AttendanceToken> {
         val response = attendanceTokenApiService.createAttendanceToken(attendanceToke)
         return try {
             if (response.isSuccessful) {

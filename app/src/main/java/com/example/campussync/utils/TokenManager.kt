@@ -24,7 +24,7 @@ class TokenManager @Inject constructor(@ApplicationContext context: Context) {
     }
 
     fun getToken(): String? {
-        return prefs.getString("jwt_token", null)
+        return prefs.getString("jwt_token", null)?.trim()
     }
 
     fun clearToken() {

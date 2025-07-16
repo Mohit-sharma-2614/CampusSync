@@ -1,11 +1,17 @@
 package com.example.campussync.navigation
 
+import android.annotation.SuppressLint
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsStartWidth
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -36,26 +42,7 @@ fun NavHostController.navigateWithArgs(
     this.navigateSingleTopTo(fullRoute)
 }
 
-// These are the functions using the generic function
-fun NavHostController.navigateToDashboard(isTeacher: Boolean, id: Long){
-    this.navigateWithArgs(Dashboard.route,isTeacher,id)
-}
-
-fun NavHostController.navigateToProfile(isTeacher: Boolean, id: Long){
-    this.navigateWithArgs(Profile.route,isTeacher,id)
-}
-
-fun NavHostController.navigateToClasses(isTeacher: Boolean, id: Long){
-    this.navigateWithArgs(Classes.route,isTeacher,id)
-}
-
-fun NavHostController.navigateToAttendance(isTeacher: Boolean, id: Long){
-    this.navigateWithArgs(AttendanceRoute.route,isTeacher,id)
-}
-
-fun NavHostController.navigateToAssignments(isTeacher: Boolean, id: Long){
-    this.navigateWithArgs(AssignmentsRoute.route,isTeacher,id)
-}
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -64,27 +51,32 @@ fun AppNavigation() {
     val currentScreen = bottomNavItems.find { it.route == currentDestination?.route } ?: Dashboard
 
     Scaffold(
+        modifier = Modifier
+            .background(
+                color = MaterialTheme.colorScheme.background
+            ),
         bottomBar = {
-            BottomNavigationComponent(
-                allScreens = bottomNavItems,
-                onTabSelected = { newScreen ->
-                    navController
-                        .navigate(newScreen.route){
-                            popUpTo(navController.graph.startDestinationId){
-                                saveState = true
-                                inclusive = true
+            if(bottomNavItems.any { it.route == currentDestination?.route }){
+                BottomNavigationComponent(
+                    allScreens = bottomNavItems,
+                    onTabSelected = { newScreen ->
+                        navController
+                            .navigate(newScreen.route){
+                                popUpTo(Dashboard.route){
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                },
-                currentScreen = currentScreen
-            )
+                    },
+                    currentScreen = currentScreen,
+                )
+            }
         }
-    ) { innerPadding ->
+    ) {
         AppNavHost(
             navController = navController,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier
         )
     }
 }

@@ -1,6 +1,7 @@
 package com.example.campussync.api
 
-import com.example.campussync.data.model.AttendanceToken
+import com.example.campussync.data.model.attendanceToken.AttendanceToken
+import com.example.campussync.data.model.attendanceToken.AttendanceTokenReq
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -19,7 +20,7 @@ interface AttendanceTokenApiService {
 
     @POST("attendance_token")
     suspend fun createAttendanceToken(
-        @Body attendanceToken: AttendanceToken
+        @Body attendanceToken: AttendanceTokenReq
     ): Response<AttendanceToken>
 
 }

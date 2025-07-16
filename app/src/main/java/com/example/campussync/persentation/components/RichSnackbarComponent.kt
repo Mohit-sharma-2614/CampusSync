@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -55,7 +56,7 @@ fun RichSnackbarComponent(
                 shape = RoundedCornerShape(16.dp),
                 tonalElevation = 6.dp,
                 shadowElevation = 12.dp,
-                color = if (isError) Color(0xFFEF5350) else Color(0xFF66BB6A),
+                color = if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 8.dp)
                     .fillMaxWidth()
@@ -70,7 +71,7 @@ fun RichSnackbarComponent(
                     Icon(
                         imageVector = if (isError) Icons.Default.Error else Icons.Default.CheckCircle,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(24.dp)
                     )
 
@@ -79,7 +80,7 @@ fun RichSnackbarComponent(
                     // 📢 Message
                     Text(
                         text = snackbarData.visuals.message,
-                        color = Color.White,
+                        color = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
                         fontSize = 16.sp,
                         modifier = Modifier.weight(1f)
                     )
@@ -89,7 +90,7 @@ fun RichSnackbarComponent(
                         TextButton(onClick = { onActionClick?.invoke() }) {
                             Text(
                                 text = it,
-                                color = Color.Yellow,
+                                color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold
                             )
                         }
