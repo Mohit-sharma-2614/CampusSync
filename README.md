@@ -52,7 +52,7 @@ This project leverages modern Android development practices and technologies, sh
 
 ⚙️ **Backend**  
 The backend is developed using the **Spring Framework** (Spring Boot) and is hosted in a separate GitHub repository:  
-➡️ **Backend Repository**: [YourUsername/CampusSyncBackend](https://github.com/YourUsername/CampusSyncBackend) (Replace with your actual repository link).  
+➡️ **Backend Repository**: [YourUsername/CampusSyncBackend](https://github.com/YourUsername/CampusSyncBackend).  
 
 The backend handles:  
 - User authentication and JWT token generation/verification.  
