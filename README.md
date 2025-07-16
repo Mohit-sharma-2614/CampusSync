@@ -101,7 +101,7 @@ Follow these steps to set up and run the Campus Sync Android app locally for dev
 
 | Student's Attendance Screen | Student's Scanner | Student's Attendance List |  
 |-----------------------------|-------------------|---------------------------|  
-| <img src="./screenshot/student_attendance_screen.png" alt="Student's Attendance Screen" width="250"/> | <img src="./screenshot/qr_code_scan_screen.png" alt="Student's Scanner" width="250"/> | <img src="./screenshot/student_attendance_screen.png" alt="Student's Attendance List" width="250"/> |  
+| <img src="./screenshot/student_attendance_screen.png" alt="Student's Attendance Screen" width="250"/> | <img src="./screenshot/qr_code_scan_screen.png" alt="Student's Scanner" width="250"/> | <img src="./screenshot/profile_screen.png" alt="Profile screen" width="250"/> |  
 
 📝 **Notes**  
 - Ensure the backend server is running and accessible before launching the app.  
