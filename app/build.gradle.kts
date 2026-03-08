@@ -22,6 +22,13 @@ android {
     }
 
     buildTypes {
+        
+        getByName("debug"){
+            isMinifyEnabled = false
+            applicationIdSuffix = ".debug"
+            isDebuggable = true
+        }
+        
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -30,6 +37,21 @@ android {
             )
         }
     }
+    
+    flavorDimensions += "version"
+    productFlavors {
+        create("demo"){
+            dimension = "version"
+            applicationIdSuffix = ".demo"
+            versionNameSuffix = "-demo"
+        }
+        create("full"){
+            dimension = "version"
+            applicationIdSuffix = ".full"
+            versionNameSuffix = "-full"
+        }
+    }
+    
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -54,26 +76,26 @@ dependencies {
 //    implementation(libs.kotlinx.serialization.json)
 
     // ZXing core for QR code generation
-    implementation("com.google.zxing:core:3.5.3")
+    implementation(libs.core)
 
     // CameraX dependencies
     val cameraxVersion = "1.3.4" // Check for the latest stable version
-    implementation("androidx.camera:camera-core:$cameraxVersion")
-    implementation("androidx.camera:camera-camera2:$cameraxVersion")
-    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
-    implementation("androidx.camera:camera-view:$cameraxVersion")
-    implementation("androidx.camera:camera-extensions:$cameraxVersion") // Optional, but good for camera features
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.androidx.camera.extensions) // Optional, but good for camera features
 
     // ML Kit Barcode Scanning
-    implementation("com.google.mlkit:barcode-scanning:17.2.0") // Check for the latest version
+    implementation(libs.barcode.scanning) // Check for the latest version
     // Kotlin Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0") // Check for the latest version
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
+    implementation(libs.kotlinx.coroutines.core) // Check for the latest version
+    implementation(libs.kotlinx.coroutines.android)
 
 
-    implementation("androidx.security:security-crypto:1.0.0")
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
-    implementation("com.auth0:java-jwt:4.4.0")
+    implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.java.jwt)
 
     implementation(libs.converter.gson)
     implementation(libs.okhttp)
@@ -86,8 +108,8 @@ dependencies {
 
     implementation(libs.androidx.material.icons.extended)
 
-    implementation("br.com.devsrsouza.compose.icons:font-awesome:1.1.1")
-    implementation("br.com.devsrsouza.compose.icons:octicons:1.1.1")
+    implementation(libs.font.awesome)
+    implementation(libs.octicons)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
