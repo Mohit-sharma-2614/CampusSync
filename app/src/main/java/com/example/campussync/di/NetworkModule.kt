@@ -30,7 +30,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    const val BASE_URL = "YOUR_URL_OF_SERVER"
+    const val BASE_URL = "https://www.google.com/"
 
     @Provides
     @Singleton
