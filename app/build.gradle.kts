@@ -45,6 +45,7 @@ android {
 dependencies {
 
     implementation(libs.hilt.android)
+    implementation(libs.androidx.compose.material3)
     ksp(libs.hilt.android.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
@@ -52,6 +53,13 @@ dependencies {
 //    implementation(libs.retrofit2.kotlinx.serialization.converter)
 //    implementation(libs.converter.kotlinx.serialization)
 //    implementation(libs.kotlinx.serialization.json)
+
+    // Stomp + messaging
+    implementation("com.github.NaikSoftware:StompProtocolAndroid:1.6.6")
+    // Reactive Streams (Required by Stomp)
+    implementation("io.reactivex.rxjava2:rxandroid:2.1.1")
+    // JSON Serialization
+    implementation("com.google.code.gson:gson:2.10.1")
 
     // ZXing core for QR code generation
     implementation("com.google.zxing:core:3.5.3")

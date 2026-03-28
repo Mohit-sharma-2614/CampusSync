@@ -232,10 +232,7 @@ private fun DashboardCard(
     val shape = RoundedCornerShape(24.dp)
     // Use Material Design 3 color tokens for the gradient
     val gradient = Brush.linearGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primary,
-            MaterialTheme.colorScheme.secondary
-        )
+        colors = card.colors
     )
 
     Card(

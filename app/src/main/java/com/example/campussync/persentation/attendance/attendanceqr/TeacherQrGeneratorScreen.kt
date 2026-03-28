@@ -116,6 +116,15 @@ fun TeacherQrGeneratorScreen(
             snackbarHostState.currentSnackbarData?.dismiss() // Dismiss when reconnected
         }
     }
+
+    // Start auto-refresh exactly ONCE when a valid subject is selected
+    LaunchedEffect(selectedSubject?.id, qrCodeData != null) {
+        val subject = selectedSubject ?: return@LaunchedEffect
+        if (qrCodeData != null) {
+            viewModel.startAutoRefresh(subject)
+        }
+    }
+
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     Scaffold(

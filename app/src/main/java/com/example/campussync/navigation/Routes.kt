@@ -60,6 +60,13 @@ object AssignmentsRoute : Routes {
     override val route = "assignments"
 }
 
+//object NoticeRoute: Routes{
+//    override val selectedIcon = Icons.Filled.Class
+//    override val unselectedIcon = Icons.Outlined.Class
+//    override val name = "Notice"
+//    override val route = "notice"
+//}
+
 object Splash : Routes {
     override val selectedIcon = Icons.Filled.Class
     override val unselectedIcon = Icons.Outlined.Class

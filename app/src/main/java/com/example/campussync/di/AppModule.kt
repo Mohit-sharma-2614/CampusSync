@@ -1,29 +1,11 @@
 package com.example.campussync.di
 
-import android.content.Context
-import com.example.campussync.data.repository.AttendanceRepository
-import com.example.campussync.data.repository.AttendanceTokenRepository
-import com.example.campussync.data.repository.AuthRepository
-import com.example.campussync.data.repository.DepartmentRepository
-import com.example.campussync.data.repository.EnrollmentRepository
-import com.example.campussync.data.repository.StudentRepository
-import com.example.campussync.data.repository.SubjectRepository
-import com.example.campussync.data.repository.TeacherRepository
-import com.example.campussync.data.repository.impl.AttendanceRepositoryImpl
-import com.example.campussync.data.repository.impl.AttendanceTokenRepositoryImpl
-import com.example.campussync.data.repository.impl.AuthRepositoryImpl
-import com.example.campussync.data.repository.impl.DepartmentRepositoryImpl
-import com.example.campussync.data.repository.impl.EnrollmentRepositoryImpl
-import com.example.campussync.data.repository.impl.StudentRepositoryImpl
-import com.example.campussync.data.repository.impl.SubjectRepositoryImpl
-import com.example.campussync.data.repository.impl.TeacherRepositoryImpl
-import com.example.campussync.utils.ConnectivityObserver
-import com.example.campussync.utils.UserPreferences
+
+import com.example.campussync.data.repository.*
+import com.example.campussync.data.repository.impl.*
 import dagger.Binds
 import dagger.Module
-import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -81,5 +63,10 @@ interface AppModule {
         impl: AuthRepositoryImpl
     ): AuthRepository
 
+
+
+//    @Binds
+//    @Singleton
+//    abstract fun provideNoticeRepository(impl: NoticeRepositoryImpl): NoticeRepository
 
 }

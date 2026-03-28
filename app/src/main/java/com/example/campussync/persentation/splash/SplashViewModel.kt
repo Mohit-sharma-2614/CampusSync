@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.campussync.navigation.Dashboard
 import com.example.campussync.navigation.Login
-import com.example.campussync.persentation.auth.LoginViewModel
 import com.example.campussync.utils.UserPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

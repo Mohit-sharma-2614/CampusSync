@@ -5,10 +5,12 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.campussync.data.model.attendance.Attendance
 import com.example.campussync.data.model.attendance.AttendanceReq
 import com.example.campussync.data.model.student.StudentLoginResponse
-import com.example.campussync.data.repository.*
+import com.example.campussync.data.repository.AttendanceRepository
+import com.example.campussync.data.repository.StudentRepository
+import com.example.campussync.data.repository.SubjectRepository
+import com.example.campussync.data.repository.TeacherRepository
 import com.example.campussync.utils.Resource
 import com.example.campussync.utils.UserPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,31 +22,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter // Import for date formatting
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
-// Re-using data classes and repositories (assuming they are defined elsewhere and correctly injected)
-// data class Student(val id: Long, val name: String, val studentUid: String, val email: String, val semester: Int)
-// data class Teacher(val id: Long, val name: String, val email: String, val department: String)
-// data class Subject(val id: Long, val name: String, val code: String, val semester: Int, val department: Department, val teacher: TeacherLoginResponse)
-// data class Department(val id: Long, val name: String) // Assuming you have this
-// data class Attendance(val id: Long, val student: StudentLoginResponse, val subject: Subject, val date: String, val status: String)
-// data class StudentLoginResponse(...) // Your provided structure
-// data class TeacherLoginResponse(...) // Your provided structure
-// sealed class Resource<out T> { ... }
-// class StudentRepository { suspend fun getStudentById(id: Long): Resource<Student> } // Assumed to return 'Student'
-// class TeacherRepository { suspend fun getTeacherById(id: Long): Resource<Teacher> }
-// class SubjectRepository { suspend fun getAllSubjects(): Resource<List<Subject>> }
-// class AttendanceRepository {
-//     suspend fun getAttendanceBySubjectId(subjectId: Long): Resource<List<Attendance>>
-//     suspend fun createAttendance(attendance: Attendance): Resource<Attendance> // This is the new method
-// }
-// class UserPreferences {
-//     val userId: Flow<String?>
-//     val isTeacher: Flow<Boolean>
-// }
 
-// Your UiState and AttendanceRecordItem as defined previously
 data class SubjectAttendanceUiState(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,

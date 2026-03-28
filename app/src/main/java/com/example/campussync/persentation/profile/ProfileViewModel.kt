@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.campussync.data.model.student.StudentLoginResponse
 import com.example.campussync.data.model.teacher.TeacherLoginResponse
-import com.example.campussync.data.repository.AuthRepository
 import com.example.campussync.data.repository.StudentRepository
 import com.example.campussync.data.repository.TeacherRepository
 import com.example.campussync.utils.Resource
@@ -138,7 +137,7 @@ class ProfileViewModel @Inject constructor(
                         Log.e("ProfileViewModel", "Failed to fetch profile: ${result.message}")
                         currentState.copy(
                             isLoading = false,
-                            errorMessage = result.message ?: "Failed to load profile data."
+                            errorMessage = result.message
                         )
                     }
                     is Resource.Loading -> currentState // Should not happen here, but for completeness

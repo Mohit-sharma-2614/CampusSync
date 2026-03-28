@@ -70,7 +70,7 @@ class AttendanceViewModel @Inject constructor(
     private val subjectRepository: SubjectRepository,
     private val enrollmentRepository: EnrollmentRepository,
     private val attendanceRepository: AttendanceRepository,
-    private val userPreferences: UserPreferences
+    userPreferences: UserPreferences
 ) : ViewModel() {
 
     private val _attendanceUiState = MutableStateFlow(AttendanceUiState())
@@ -275,7 +275,7 @@ class AttendanceViewModel @Inject constructor(
                             summaryMap[subject.id] = TeacherSubjectAttendanceSummary(
                                 subjectId = subject.id,
                                 subjectName = subject.name,
-                                totalStudents = 0,
+                                totalStudents = getTotalStudentsInSubject(subject.id),
                                 presentStudents = 0,
                                 overallClassPercentage = 0.0,
                                 latestAttendanceDate = "Error loading"
@@ -313,6 +313,20 @@ class AttendanceViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun getTotalStudentsInSubject(subjectId: Long): Int {
+
+        var totalStudents: Int = 0
+
+        viewModelScope.launch {
+            val enrollmentListBySubject = enrollmentRepository.getEnrollmentsBySubjectId(subjectId = subjectId)
+            if (enrollmentListBySubject is Resource.Success) {
+                totalStudents = enrollmentListBySubject.data.size
+            }
+        }
+
+        return totalStudents
     }
 
     /**

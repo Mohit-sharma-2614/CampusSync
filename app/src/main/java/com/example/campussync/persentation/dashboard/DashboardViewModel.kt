@@ -25,11 +25,13 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlinx.coroutines.flow.collectLatest // Crucial for collecting flows
 import android.util.Log // For debugging
+import androidx.compose.material.icons.rounded.CircleNotifications
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import com.example.campussync.data.repository.AuthRepository
+//import com.example.campussync.navigation.NoticeRoute
 import com.example.campussync.persentation.auth.LoginViewModel.LoginEvent
 import com.example.campussync.utils.ConnectivityObserver
 import com.example.campussync.utils.Resource
@@ -285,7 +287,14 @@ class DashboardViewModel @Inject constructor(
                 colors = listOf(Color(0xFFFF7043), Color(0xFFF4511E)),
                 badge = null,
                 destination = AssignmentsRoute.route
-            )
+            ),
+//            DashboardCard(
+//                title = "Notice",
+//                iconRes = Icons.Rounded.CircleNotifications,
+//                colors = listOf(Color(0xFFFF7043), Color(0xFFF4511E)),
+//                badge = null,
+//                destination = NoticeRoute.route
+//            )
         )
     }
 

@@ -75,7 +75,7 @@ fun SubjectAttendanceScreen(
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let { message ->
             snackbarHostState.showSnackbar(message)
-            // viewModel.clearErrorMessage() // Clear if you add this function to ViewModel
+            //viewModel.clearErrorMessage()
         }
     }
 

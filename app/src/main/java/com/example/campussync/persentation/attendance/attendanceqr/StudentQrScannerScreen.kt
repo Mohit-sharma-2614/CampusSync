@@ -2,10 +2,12 @@ package com.example.campussync.persentation.attendance.attendanceqr
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
+import androidx.annotation.RequiresExtension
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
@@ -65,6 +67,7 @@ import java.util.concurrent.Executors
 // data class AttendanceToken(val subject: Subject, val generatedAt: Long, val expiresAt: Long) // From the QR code
 
 
+@RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
 @OptIn(ExperimentalGetImage::class)
 @kotlin.OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -229,6 +232,74 @@ fun StudentQrScannerScreen(
                         }
                     }
 
+                    //                    if (attendanceToken != null) {
+//
+//                        val zoneId = ZoneId.of("Asia/Kolkata")
+//                        val outputFormatter = DateTimeFormatter.ofPattern("hh:mm a, dd MMM yyyy").withZone(zoneId)
+//                        val inputParser = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+//
+//                           1. Declare variables to hold the results or the error.
+//                        var generatedAtDateTime: String? = null
+//                        var expiresAtDateTime: String? = null
+//                        var parsingError: String? = null
+//
+//// 2. Perform the logic and exception handling *outside* of composables.
+//                        try {
+//                            val generatedAtString = attendanceToken.generatedAt as? String ?: ""
+//                            val generatedAtInstant = OffsetDateTime.parse(generatedAtString, inputParser).toInstant()
+//                            generatedAtDateTime = outputFormatter.format(generatedAtInstant) // Assign to variable
+//
+//                            val expiresAtString = attendanceToken.expiresAt as? String ?: ""
+//                            val expiresAtInstant = OffsetDateTime.parse(expiresAtString, inputParser).toInstant()
+//                            expiresAtDateTime = outputFormatter.format(expiresAtInstant) // Assign to variable
+//
+//                        } catch (e: DateTimeParseException) {
+//                            Log.e("QRScanner", "Failed to parse date-time from QR code", e)
+//                            parsingError = "Invalid date format in QR Code. Please scan a valid code."
+//                        } catch (e: Exception) {
+//                            Log.e("QRScanner", "An unexpected error occurred processing the QR code", e)
+//                            parsingError = "An unexpected error occurred. Please try again."
+//                        }
+//
+//
+//                        if (parsingError != null) {
+//                            // UI for the error case
+//                            Text(
+//                                text = parsingError!!,
+//                                color = MaterialTheme.colorScheme.error
+//                            )
+//                            Spacer(modifier = Modifier.height(16.dp))
+//                            Button(onClick = { viewModel.resetScannedContentAndStatus() }) {
+//                                Text("Scan Again")
+//                            }
+//                        } else {
+//                            // UI for the success case
+//                            Text(
+//                                "Scanned QR Code Details:",
+//                                style = MaterialTheme.typography.titleMedium
+//                            )
+//                            Spacer(modifier = Modifier.height(8.dp))
+//                            Text("Subject: ${attendanceToken.subject.name}")
+//                            Text("Generated At: $generatedAtDateTime")
+//                            Text("Expires At: $expiresAtDateTime")
+//                            Spacer(modifier = Modifier.height(16.dp))
+//
+//                            if (studentLoginResponse == null) {
+//                                CircularProgressIndicator()
+//                                Text("Fetching student details to mark attendance...")
+//                            } else {
+//                                Button(
+//                                    onClick = {
+//                                        // Pass the attendance token; ViewModel already has studentLoginResponse
+//                                        viewModel.markAttendance(attendanceToken)
+//                                    },
+//                                    enabled = attendanceMarkingStatus !is AttendanceQrViewModel.AttendanceMarkingStatus.Loading
+//                                ) {
+//                                    Text("Confirm and Mark Attendance")
+//                                }
+//                            }
+//                        }
+
                     if (attendanceToken != null) {
                         val zoneId = ZoneId.of("Asia/Kolkata") // India's timezone
                         val outputFormatter = DateTimeFormatter.ofPattern("hh:mm a, dd MMM yyyy").withZone(zoneId)
@@ -276,7 +347,8 @@ fun StudentQrScannerScreen(
                             ) {
                                 Text("Confirm and Mark Attendance")
                             }
-                        }
+                        }// till here
+
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             onClick = { viewModel.resetScannedContentAndStatus() }

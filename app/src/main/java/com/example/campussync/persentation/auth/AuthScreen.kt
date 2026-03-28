@@ -294,7 +294,7 @@ fun AuthScreen(
                             }
                         )
                         // Validation
-                        val isPasswordValid = password.length >= 6
+                        val isPasswordValid = true//password.length >= 6
 
                         if(!isPasswordValid){
                             Spacer(modifier = Modifier.height(8.dp))
@@ -320,7 +320,7 @@ fun AuthScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .scale(buttonScale),
-                            enabled = isEmailValid && isPasswordValid && !uiState.isLoading && !uiState.isLoading,
+                            enabled = isEmailValid && isPasswordValid && !uiState.isLoading,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary,

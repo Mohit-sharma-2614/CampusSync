@@ -1,5 +1,7 @@
 package com.example.campussync.navigation
 
+import android.os.Build
+import androidx.annotation.RequiresExtension
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -13,9 +15,11 @@ import com.example.campussync.persentation.attendance.subject.SubjectAttendanceS
 import com.example.campussync.persentation.auth.AuthScreen
 import com.example.campussync.persentation.classes.ClassesScreen
 import com.example.campussync.persentation.dashboard.DashboardScreen
+//import com.example.campussync.persentation.notice.NoticeScreen
 import com.example.campussync.persentation.profile.ProfileScreen
 import com.example.campussync.persentation.splash.SplashScreen
 
+@RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
 @Composable
 fun AppNavHost(
     navController: NavHostController,
@@ -56,6 +60,7 @@ fun AppNavHost(
                     val targetRoute = when (card.destination) {
                         AttendanceRoute.route -> AttendanceRoute.route
                         AssignmentsRoute.route -> AssignmentsRoute.route
+                        //NoticeRoute.route -> NoticeRoute.route
                         else -> card.destination // fallback
                     }
                     navController.navigate(targetRoute)
@@ -95,6 +100,14 @@ fun AppNavHost(
                 onOkClick = { navController.popBackStack() }
             )
         }
+
+//        composable(
+//            route = NoticeRoute.route
+//        ) {
+//            NoticeScreen(
+//                onBackClick = { navController.popBackStack() }
+//            )
+//        }
 
         composable(
             route = AttendanceRoute.route

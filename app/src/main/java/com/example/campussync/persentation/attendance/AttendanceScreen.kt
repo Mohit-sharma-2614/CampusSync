@@ -8,13 +8,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
@@ -25,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
@@ -58,8 +54,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import com.example.campussync.data.model.Subject
 import androidx.compose.foundation.clickable
-import androidx.compose.ui.draw.scale
-import com.example.campussync.persentation.components.AnimatedScaleOnDataLoad
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -107,7 +103,7 @@ fun AttendanceScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            Icons.Default.ArrowBack,
+                            Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -316,7 +312,7 @@ private fun TeacherAttendanceView(
                                 ),
                                 onClick = { onSubjectClick(subject.id) },
 
-                            )
+                                )
                         }
                     }
                 }
@@ -326,7 +322,11 @@ private fun TeacherAttendanceView(
 }
 
 @Composable
-private fun TeacherSubjectAttendanceCard(summary: TeacherSubjectAttendanceSummary, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun TeacherSubjectAttendanceCard(
+    summary: TeacherSubjectAttendanceSummary,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Card(
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -363,9 +363,9 @@ private fun TeacherSubjectAttendanceCard(summary: TeacherSubjectAttendanceSummar
                     )
                     summary.latestAttendanceDate?.let {
 
-                        val originalDate = it
-                        val parsedDate = LocalDate.parse(originalDate)
-                        val formattedDate = parsedDate.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+                        val parsedDate = LocalDate.parse(it)
+                        val formattedDate =
+                            parsedDate.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
 
                         Text(
                             "Last Marked: $formattedDate",

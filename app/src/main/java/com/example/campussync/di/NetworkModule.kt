@@ -1,7 +1,7 @@
 package com.example.campussync.di
 
+//import com.example.campussync.api.NoticeApiService
 import android.content.Context
-import androidx.compose.ui.tooling.preview.Preview
 import com.example.campussync.api.AttendanceApiService
 import com.example.campussync.api.AttendanceTokenApiService
 import com.example.campussync.api.AuthApiService
@@ -12,7 +12,6 @@ import com.example.campussync.api.SubjectApiService
 import com.example.campussync.api.TeacherApiService
 import com.example.campussync.utils.AuthInterceptor
 import com.example.campussync.utils.ConnectivityObserver
-import com.example.campussync.utils.TokenExpirationInterceptor
 import com.example.campussync.utils.TokenManager
 import com.example.campussync.utils.UserPreferences
 import dagger.Module
@@ -23,20 +22,25 @@ import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.create
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    const val BASE_URL = "YOUR_URL_OF_SERVER"
+    const val BASE_URL = "http://13.60.252.20:8080" //"http://10.0.2.2:8080"
 
     @Provides
     @Singleton
     fun provideConnectivityObserver(@ApplicationContext context: Context): ConnectivityObserver {
         return ConnectivityObserver(context)
     }
+
+//    @Singleton
+//    @Provides
+//    fun provideNoticeApiService(retrofit: Retrofit): NoticeApiService {
+//        return retrofit.create(NoticeApiService::class.java)
+//    }
 
     @Provides
     fun provideAuthInterceptor(tokenManager: TokenManager): AuthInterceptor = AuthInterceptor(tokenManager)

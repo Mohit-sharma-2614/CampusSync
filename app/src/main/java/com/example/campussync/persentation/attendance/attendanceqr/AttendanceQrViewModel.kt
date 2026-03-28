@@ -25,7 +25,9 @@ import com.example.campussync.utils.Resource
 import com.example.campussync.utils.UserPreferences
 import com.google.gson.Gson
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -34,11 +36,14 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
+import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 import java.util.Locale
 import javax.inject.Inject
 
@@ -130,6 +135,8 @@ class AttendanceQrViewModel @Inject constructor(
             }
         }
     }
+
+    private var autoRefreshJob: Job? = null
 
     /**
      * Teacher Function: Marks all non-present students as absent for a subject and date.
@@ -393,6 +400,31 @@ class AttendanceQrViewModel @Inject constructor(
         }
     }
 
+    fun startAutoRefresh(subject: Subject){
+        autoRefreshJob?.cancel()
+        autoRefreshJob = null
+
+        autoRefreshJob = viewModelScope.launch {
+            while (isActive){
+                delay(10_000) // Check every 10 seconds.
+
+                val currentTokenJson = _qrCodeData.value
+                if(currentTokenJson.isNullOrBlank()) continue
+
+                val currentToken = try {
+                    Gson().fromJson(currentTokenJson, AttendanceToken::class.java)
+                } catch (e: Exception) {
+                    Log.e("AttendanceQrVM","Failed to parse token",e)
+                    continue
+                }
+
+                if(isTokenExpired(currentToken.expiresAt)) {
+                    Log.d("AttendanceQrVM", "Token has expired. Generating new one.")
+                    generateAttendanceTokenForQr(subject)
+                }
+            }
+        }
+    }
 
     /**
      * Student Function: Processes scanned QR code content.
@@ -412,6 +444,13 @@ class AttendanceQrViewModel @Inject constructor(
     @RequiresExtension(extension = Build.VERSION_CODES.S, version = 7) // If any internal calls need it
     fun markAttendance(attendanceToken: AttendanceToken) {
         viewModelScope.launch {
+
+            // Check for expired token
+            if(isTokenExpired(attendanceToken.expiresAt)){
+                _attendanceMarkingStatus.value = AttendanceMarkingStatus.Error("Attendance token has expired.")
+                Log.e("AttendanceQrVM", "markAttendance: Attendance token has expired.")
+                return@launch
+            }
             _attendanceMarkingStatus.value = AttendanceMarkingStatus.Loading
 
             val student = _studentLoginResponse.value
@@ -503,6 +542,17 @@ class AttendanceQrViewModel @Inject constructor(
         }
     }
 
+    fun isTokenExpired(expiresAt: String): Boolean{
+        try {
+            val expiryInstant = OffsetDateTime.parse(expiresAt).toInstant() // Converts directly from ISO timestamp
+            val nowInstant = Instant.now()
+            Log.d("AttendanceQrVM", "Now: $nowInstant, Expiry: $expiryInstant")
+            return nowInstant.isAfter(expiryInstant)
+        } catch (e: DateTimeParseException){
+            Log.e("AttendanceQrVM", "Failed to parse expiry date: $expiresAt", e)
+            return true
+        }
+    }
 
     fun resetAbsentMarkingStatus() {
         _absentMarkingStatus.value = AttendanceMarkingStatus.Idle
@@ -520,6 +570,11 @@ class AttendanceQrViewModel @Inject constructor(
         // For a general reset from student scanning screen:
         _attendanceMarkingStatus.value = AttendanceMarkingStatus.Idle
         Log.d("AttendanceQrVM", "Resetting scanned content and student attendance status.")
+    }
+
+    override fun onCleared() {
+        autoRefreshJob?.cancel()
+        super.onCleared()
     }
 }
 
