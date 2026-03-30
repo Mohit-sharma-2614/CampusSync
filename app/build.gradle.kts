@@ -1,10 +1,21 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("com.google.devtools.ksp")
-    id("com.google.dagger.hilt.android")
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.serialization)
 
+    id("com.google.dagger.hilt.android")
+}
+
+kotlin {
+    target {
+        compilerOptions{
+            jvmTarget = JvmTarget.fromTarget("11")
+        }
+    }
 }
 
 android {
@@ -34,15 +45,28 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
     buildFeatures {
         compose = true
     }
 }
 
 dependencies {
+    // serialization
+    implementation(libs.kotlinx.serialization.json)
+    // Koin
+    implementation(platform(libs.koin.bom))
+    implementation(libs.koin.android) // Android specific.
+    implementation(libs.koin.androidx.compose) // Android + Compose specific.
+    implementation(libs.koin.androidx.compose.navigation) // Android + Compose specific.
+    implementation(libs.koin.ktor) // Ktor specific.
+    implementation(libs.koin.test) // Test specific.
+    // Ktor
+    implementation(libs.ktor.client.android)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.client.logging)
+    implementation(libs.ktor.client.serialization)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.auth)
 
     implementation(libs.hilt.android)
     implementation(libs.androidx.compose.material3)
@@ -50,9 +74,6 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
 
     implementation(libs.retrofit2.retrofit)
-//    implementation(libs.retrofit2.kotlinx.serialization.converter)
-//    implementation(libs.converter.kotlinx.serialization)
-//    implementation(libs.kotlinx.serialization.json)
 
     // Stomp + messaging
     implementation("com.github.NaikSoftware:StompProtocolAndroid:1.6.6")
@@ -62,26 +83,25 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
 
     // ZXing core for QR code generation
-    implementation("com.google.zxing:core:3.5.3")
+    implementation(libs.zxing.core)
 
     // CameraX dependencies
-    val cameraxVersion = "1.3.4" // Check for the latest stable version
-    implementation("androidx.camera:camera-core:$cameraxVersion")
-    implementation("androidx.camera:camera-camera2:$cameraxVersion")
-    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
-    implementation("androidx.camera:camera-view:$cameraxVersion")
-    implementation("androidx.camera:camera-extensions:$cameraxVersion") // Optional, but good for camera features
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.camera2)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
+    implementation(libs.camerax.extensions)
 
     // ML Kit Barcode Scanning
-    implementation("com.google.mlkit:barcode-scanning:17.2.0") // Check for the latest version
+    implementation(libs.barcode.scanning)
     // Kotlin Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0") // Check for the latest version
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
 
 
-    implementation("androidx.security:security-crypto:1.0.0")
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
-    implementation("com.auth0:java-jwt:4.4.0")
+    implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.java.jwt)
 
     implementation(libs.converter.gson)
     implementation(libs.okhttp)

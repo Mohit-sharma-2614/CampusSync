@@ -1,0 +1,72 @@
+package com.example.campussync.data.remote.api
+
+import com.example.campussync.data.remote.dto.auth.AuthDto
+import com.example.campussync.data.remote.dto.refreshtoken.RefreshTokenResponseDto
+import com.example.campussync.data.remote.dto.student.StudentDto
+import com.example.campussync.data.remote.dto.teacher.TeacherDto
+import com.example.campussync.data.remote.dto.user.UserLoginDto
+import com.example.campussync.domain.model.User
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import javax.inject.Inject
+
+class UserApi @Inject constructor(
+    private val client: HttpClient
+) {
+    suspend fun loginStudent(
+        loginDto: UserLoginDto
+    ): StudentDto {
+        return client.post("student/login") {
+            setBody(loginDto)
+        }.body()
+    }
+
+    suspend fun loginTeacher(
+        loginDto: UserLoginDto
+    ): TeacherDto {
+        return client.post("teacher/login") {
+            contentType(ContentType.Application.Json)
+            setBody(loginDto)
+        }.body()
+    }
+
+    suspend fun logOut(): String {
+        return client.post("/api/auth/logout").status.toString()
+    }
+
+    suspend fun validateToken(): AuthDto {
+        return client.post("/api/auth/validate-token"){
+
+        }.body()
+    }
+
+    suspend fun refreshToken(): RefreshTokenResponseDto {
+        return client.post("/api/auth/refreshtoken"){
+
+        }.body()
+    }
+}
+
+/**
+ * Extension functions to easily wrap the DTOs into the sealed response.
+ */
+fun StudentDto.toDomain() =
+    User.Student(
+        id = id,
+        name = name,
+        email = email,
+        jwtToke = jwtToken,
+        refreshToken = refreshToken
+    )
+fun TeacherDto.toDomain() =
+    User.Teacher(
+        id = id,
+        name = name,
+        email = email,
+        jwtToke = jwtToken,
+        refreshToken = refreshToken
+    )

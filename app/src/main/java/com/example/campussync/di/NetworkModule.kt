@@ -10,16 +10,25 @@ import com.example.campussync.api.EnrollmentApiService
 import com.example.campussync.api.StudentApiService
 import com.example.campussync.api.SubjectApiService
 import com.example.campussync.api.TeacherApiService
+import com.example.campussync.data.remote.client.HttpClientFactory
+import com.example.campussync.data.remote.dto.refreshtoken.RefreshTokenInputDto
+import com.example.campussync.data.manager.*
+import com.example.campussync.domain.manager.TokenManagerImpl
 import com.example.campussync.utils.AuthInterceptor
 import com.example.campussync.utils.ConnectivityObserver
-import com.example.campussync.utils.TokenManager
 import com.example.campussync.utils.UserPreferences
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import okhttp3.OkHttpClient
+import org.koin.core.qualifier.named
+import org.koin.dsl.module
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
@@ -117,4 +126,45 @@ object NetworkModule {
         return UserPreferences(context)
     }
 
+}
+
+val networkModule = module {
+    val BASE_URL = "http://13.60.252.20:8080" //"http://10.0.2.2:8080"
+
+    single<TokenManager> { TokenManagerImpl(get()) }
+
+    single(named("baseUrl")) {
+        /*"http://13.60.252.20:8080"*/"http://10.0.2.2:8080"
+    }
+
+    // Public client no auth
+    single(named("publicClient")) {
+        HttpClientFactory.create(baseUrl = get(named("baseUrl")))
+    }
+
+    // Auth client
+    single(named("authClient")) {
+        val tokenManager = get<TokenManager>()
+
+        HttpClientFactory.create(
+            baseUrl = get(named("baseUrl")),
+            tokenProvider = { tokenManager.getToken() },
+            onRefreshToken = {
+                try {
+                    val publicClient = get<HttpClient>(named("publicClient"))
+
+                    val response = publicClient.post("/api/auth/refresh-token") {
+                        setBody(mapOf("refreshToken" to tokenManager.getRefreshToken()))
+                    }
+
+                    val newToken = response.body<RefreshTokenInputDto>().token
+                    tokenManager.saveToken(newToken)
+
+                    newToken
+                } catch (e: Exception) {
+                    null
+                }
+            }
+        )
+    }
 }
