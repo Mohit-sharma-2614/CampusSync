@@ -1,6 +1,7 @@
 package com.example.campussync.data.remote.api
 
 import com.example.campussync.data.remote.dto.auth.AuthDto
+import com.example.campussync.data.remote.dto.refreshtoken.RefreshTokenInputDto
 import com.example.campussync.data.remote.dto.refreshtoken.RefreshTokenResponseDto
 import com.example.campussync.data.remote.dto.student.StudentDto
 import com.example.campussync.data.remote.dto.teacher.TeacherDto
@@ -34,8 +35,11 @@ class UserApi @Inject constructor(
         }.body()
     }
 
-    suspend fun logOut(): String {
-        return client.post("/api/auth/logout").status.toString()
+    suspend fun logOut(refreshTokenInputDto: RefreshTokenInputDto): AuthDto {
+        return client.post("/api/auth/logout"){
+            contentType(ContentType.Application.Json)
+            setBody(refreshTokenInputDto)
+        }.body()
     }
 
     suspend fun validateToken(): AuthDto {
@@ -44,9 +48,10 @@ class UserApi @Inject constructor(
         }.body()
     }
 
-    suspend fun refreshToken(): RefreshTokenResponseDto {
+    suspend fun refreshToken(refreshTokenInputDto: RefreshTokenInputDto): RefreshTokenResponseDto {
         return client.post("/api/auth/refreshtoken"){
-
+            contentType(ContentType.Application.Json)
+            setBody(refreshTokenInputDto)
         }.body()
     }
 }

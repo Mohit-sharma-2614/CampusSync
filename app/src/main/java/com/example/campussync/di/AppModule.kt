@@ -1,72 +1,26 @@
 package com.example.campussync.di
 
+import com.example.campussync.data.remote.api.StudentApi
+import com.example.campussync.data.remote.api.TeacherApi
+import com.example.campussync.data.remote.api.UserApi
+import com.example.campussync.data.remote.repository.StudentRepo
+import com.example.campussync.data.remote.repository.TeacherRepo
+import com.example.campussync.data.remote.repository.UserRepo
+import com.example.campussync.domain.repository.StudentRepoImpl
+import com.example.campussync.domain.repository.TeacherRepoImpl
+import com.example.campussync.domain.repository.UserRepoImpl
+import org.koin.dsl.module
 
-import com.example.campussync.data.repository.*
-import com.example.campussync.data.repository.impl.*
-import dagger.Binds
-import dagger.Module
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
+val appModule = module {
 
-@Module
-@InstallIn(SingletonComponent::class)
-interface AppModule {
-
-
-
-    @Binds
-    @Singleton
-    abstract fun bindTeacherRepository(
-        impl: TeacherRepositoryImpl
-    ): TeacherRepository
-
-    @Binds
-    @Singleton
-    abstract fun bindStudentRepository(
-        impl: StudentRepositoryImpl
-    ): StudentRepository
-
-    @Binds
-    @Singleton
-    abstract fun bindsDepartmentRepository(
-        impl: DepartmentRepositoryImpl
-    ): DepartmentRepository
-
-    @Binds
-    @Singleton
-    abstract fun bindsSubjectRepository(
-        impl: SubjectRepositoryImpl
-    ): SubjectRepository
-
-    @Binds
-    @Singleton
-    abstract fun bindsEnrollmentRepository(
-        impl: EnrollmentRepositoryImpl
-    ): EnrollmentRepository
-
-    @Binds
-    @Singleton
-    abstract fun bindsAttendanceRepository(
-        impl: AttendanceRepositoryImpl
-    ): AttendanceRepository
-
-    @Binds
-    @Singleton
-    abstract fun bindsAttendanceTokenRepository(
-        impl: AttendanceTokenRepositoryImpl
-    ): AttendanceTokenRepository
-
-    @Binds
-    @Singleton
-    abstract fun bindsAuthRepository(
-        impl: AuthRepositoryImpl
-    ): AuthRepository
+    single { UserApi(client = get(PUBLIC_CLIENT)) }
+    single { StudentApi(client = get(PUBLIC_CLIENT)) }
+    single { TeacherApi(client = get(PUBLIC_CLIENT)) }
 
 
-
-//    @Binds
-//    @Singleton
-//    abstract fun provideNoticeRepository(impl: NoticeRepositoryImpl): NoticeRepository
+    single<UserRepo> { UserRepoImpl(get()) }
+    single<StudentRepo> { StudentRepoImpl(get()) }
+    single<TeacherRepo> { TeacherRepoImpl(get()) }
 
 }
+

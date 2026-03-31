@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Person2
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -70,20 +69,15 @@ import com.example.campussync.navigation.Dashboard
 import com.example.campussync.navigation.Login
 import com.example.campussync.persentation.components.RichSnackbarComponent
 import com.example.campussync.utils.ConnectivityObserver
-import compose.icons.AllIcons
-import compose.icons.FontAwesomeIcons
-import compose.icons.Octicons
-import compose.icons.fontawesomeicons.AllIcons
-import compose.icons.fontawesomeicons.Regular
-import compose.icons.fontawesomeicons.Solid
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(
     navController: NavController,
-    viewModel: LoginViewModel = hiltViewModel()
+    viewModel: LoginViewModel = koinViewModel()
 ) {
     val uiState = viewModel.loginState.collectAsState().value
     val connectivityStatus by viewModel.connectivityStatus.collectAsState()

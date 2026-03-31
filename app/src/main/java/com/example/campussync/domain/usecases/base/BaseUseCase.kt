@@ -14,8 +14,8 @@ abstract class BaseUseCase<T,Params>{
 
     fun execute(
         params: Params,
-        onSuccess: suspend (T) -> Unit = {},
-        onError: suspend (e: Exception) -> Unit = {},
+        onSuccess: suspend (T) -> Unit,
+        onError: suspend (e: Exception) -> Unit,
         onCancel: suspend (e: CancellationException) -> Unit = {},
         coroutineScope: CoroutineScope,
         executeContext: CoroutineContext = Dispatchers.IO,

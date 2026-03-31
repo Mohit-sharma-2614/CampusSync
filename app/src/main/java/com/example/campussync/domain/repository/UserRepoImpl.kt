@@ -3,6 +3,7 @@ package com.example.campussync.domain.repository
 import com.example.campussync.data.remote.api.UserApi
 import com.example.campussync.data.remote.api.toDomain
 import com.example.campussync.data.remote.dto.auth.AuthDto
+import com.example.campussync.data.remote.dto.refreshtoken.RefreshTokenInputDto
 import com.example.campussync.data.remote.dto.refreshtoken.RefreshTokenResponseDto
 import com.example.campussync.data.remote.dto.user.UserLoginDto
 import com.example.campussync.data.remote.repository.UserRepo
@@ -19,15 +20,15 @@ class UserRepoImpl(
         return userApi.loginTeacher(loginDto).toDomain()
     }
 
-    override suspend fun logout() {
-        userApi.logOut()
+    override suspend fun logout(refreshTokenInputDto: RefreshTokenInputDto): AuthDto {
+        return userApi.logOut(refreshTokenInputDto)
     }
 
     override suspend fun validateToken(): AuthDto {
         return userApi.validateToken()
     }
 
-    override suspend fun refreshToken(): RefreshTokenResponseDto {
-        return userApi.refreshToken()
+    override suspend fun refreshToken(refreshTokenInputDto: RefreshTokenInputDto): RefreshTokenResponseDto {
+        return userApi.refreshToken(refreshTokenInputDto)
     }
 }

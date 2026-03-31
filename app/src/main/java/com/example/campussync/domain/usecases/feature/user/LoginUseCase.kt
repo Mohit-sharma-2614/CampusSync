@@ -1,5 +1,6 @@
 package com.example.campussync.domain.usecases.feature.user
 
+import android.util.Patterns
 import com.example.campussync.data.remote.dto.user.UserLoginDto
 import com.example.campussync.data.remote.repository.UserRepo
 import com.example.campussync.domain.model.User
@@ -48,8 +49,6 @@ class LoginUseCase(
 
 }
 
-fun String.isCorrectEmail(){
-    if(!this.contains("@")){
-        throw Exception("Invalid email")
-    }
+fun String.isCorrectEmail(): Boolean {
+    return Patterns.EMAIL_ADDRESS.matcher(this).matches()
 }

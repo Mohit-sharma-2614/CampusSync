@@ -3,31 +3,23 @@ package com.example.campussync.persentation.auth
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.auth0.jwt.JWT
-import com.example.campussync.data.model.student.StudentLoginRequest
-import com.example.campussync.data.model.student.StudentLoginResponse
-import com.example.campussync.data.model.teacher.TeacherLoginRequest
-import com.example.campussync.data.model.teacher.TeacherLoginResponse
-import com.example.campussync.data.repository.AuthRepository
-import com.example.campussync.data.repository.StudentRepository
-import com.example.campussync.data.repository.TeacherRepository
+import com.example.campussync.data.remote.repository.StudentRepo
+import com.example.campussync.data.remote.repository.TeacherRepo
+import com.example.campussync.data.remote.repository.UserRepo
 import com.example.campussync.utils.ConnectivityObserver
 import com.example.campussync.utils.Resource
 import com.example.campussync.utils.TokenManager
 import com.example.campussync.utils.UserPreferences
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class LoginState(
     val isLoading: Boolean = false,
@@ -43,11 +35,10 @@ data class LoginState(
     val currentUserIsTeacher: Boolean = false // From UserPreferences
 )
 
-@HiltViewModel
-class LoginViewModel @Inject constructor(
-    private val teacherRepository: TeacherRepository,
-    private val studentRepository: StudentRepository,
-    private val authRepository: AuthRepository,
+class LoginViewModel constructor(
+    private val teacherRepository: TeacherRepo,
+    private val studentRepository: StudentRepo,
+    private val authRepository: UserRepo,
     private val userPreferences: UserPreferences,
     private val connectivityObserver: ConnectivityObserver,
     private val tokenManager: TokenManager
@@ -109,40 +100,6 @@ class LoginViewModel @Inject constructor(
                 }
             }
         }
-
-//        viewModelScope.launch {
-//            logForDebug()
-//            val token = tokenManager.getToken()
-//            val initialLoggedIn = userPreferences.isLoggedIn.first()
-//            val initialUserId = userPreferences.userId.first()
-//            val initialIsTeacher = userPreferences.isTeacher.first()
-//            _loginState.update {
-//                it.copy(
-//                    currentUserId = initialUserId,
-//                    currentUserIsTeacher = initialIsTeacher,
-//                    isLoggedIn = initialLoggedIn
-//                )
-//            }
-//
-//            if (token != null) {
-//                val validationResult = isTokenValid(token)
-//            when (validationResult) {
-//                "valid" -> {
-//                    _loginState.update {
-//                        it.copy(
-//                            isLoggedIn = true,
-//                            token = token,
-//                            isLoading = false
-//                        )
-//                    }
-//                }
-//                else -> handleTokenInvalidation()
-//            }
-//        } else {
-//            _loginState.update { it.copy(isLoading = false, isLoggedIn = false) }
-//        }
-//
-//        }
     }
 
     /**
