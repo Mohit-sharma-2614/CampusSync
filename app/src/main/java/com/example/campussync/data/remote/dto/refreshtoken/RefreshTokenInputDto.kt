@@ -1,17 +1,17 @@
 package com.example.campussync.data.remote.dto.refreshtoken
 
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
-import java.sql.Timestamp
 
 @Serializable
 data class RefreshTokenInputDto(
-    val id: Long,
+//    val id: Long,
     val userId: Long,
     val token: String,
-    @Contextual
-    val issuedAt: Timestamp,
-    val expiresAt: Timestamp,
-    val revokedAt: Timestamp,
+    // I don't see any use of issuedAt, expiresAt, revokedAt
+    // These can be accessed in the backend.
+//    @Contextual
+//    val issuedAt: Timestamp,
+//    val expiresAt: Timestamp,
+//    val revokedAt: Timestamp,
     val deviceInfo: String
 )

@@ -5,7 +5,6 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.core.IOException
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.campussync.data.manager.StorageManager
 import kotlinx.coroutines.flow.Flow
@@ -38,17 +37,17 @@ class StorageManagerImpl(
 
     /**
      * Saves the auth token to the datastore
-     * @param authToken The auth token to save
+     * @param data The auth token to save
      * @param fileName The key to save the auth token under
      */
     override suspend fun saveData(
-        authToken: String,
+        data: String,
         fileName: Preferences.Key<String>
     ) {
         try {
             context.dataStore.updateData {
                 it.toMutablePreferences().also { preferences ->
-                    preferences[fileName] = authToken
+                    preferences[fileName] = data
                 }
             }
         } catch (e: IOException){

@@ -62,44 +62,36 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.example.campussync.navigation.Dashboard
-import com.example.campussync.navigation.Login
+import com.example.campussync.data.entity.state.UiState
+import com.example.campussync.data.observer.NetworkObserver
 import com.example.campussync.persentation.components.RichSnackbarComponent
-import com.example.campussync.utils.ConnectivityObserver
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(
     navController: NavController,
-    viewModel: LoginViewModel = koinViewModel()
+    viewModel: AuthViewModel = koinViewModel()
 ) {
-    val uiState = viewModel.loginState.collectAsState().value
-    val connectivityStatus by viewModel.connectivityStatus.collectAsState()
-    var showPassword by remember { mutableStateOf(false) }
+    val authState = viewModel.appState.collectAsState().value.session
+    val networkState = viewModel.appState.collectAsState().value.network
+
+    val uiDataState = viewModel.uiData.collectAsState().value
+    val uiState = viewModel.uiState.collectAsState().value
+
+
     val snackbarHostState = remember { SnackbarHostState() }
     var isErrorSnackbar by remember { mutableStateOf(false) }
 
     // Destructure uiState
-    val email = uiState.email
-    val password = uiState.password
-    val isTeacherLoginAttempt = uiState.isTeacherLoginAttempt
-
-    // Animations for card entrance
-    val cardScale by animateFloatAsState(
-        targetValue = if (uiState.isLoading) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy),
-        label = "cardScale"
-    )
+    val email = uiDataState.loginCreds.email
+    val password = uiDataState.loginCreds.password
+    val isTeacherLoginAttempt = uiDataState.loginCreds.isTeacherLoginAttempt
 
     // Show snackbar for connectivity
-    LaunchedEffect(connectivityStatus) {
-        if (connectivityStatus == ConnectivityObserver.Status.Disconnected) {
+    LaunchedEffect(networkState) {
+        if (networkState != NetworkObserver.Status.Available) {
             snackbarHostState.currentSnackbarData?.dismiss()
             snackbarHostState.showSnackbar(
                 message = "Internet is turned off. Please check your connection.",
@@ -110,51 +102,55 @@ fun AuthScreen(
         }
     }
 
-    // Handle login events
-    LaunchedEffect(Unit) {
-        viewModel.loginEvents.collectLatest { event ->
-            when (event) {
-                is LoginViewModel.LoginEvent.Error -> {
-                    isErrorSnackbar = true
-                    snackbarHostState.showSnackbar(event.message)
-                }
+//    AuthContent(
+//        email = email,
+//        onEmailChange = { viewModel.onEmailChange(it) },
+//        password = password,
+//        onPasswordChange = { viewModel.onPasswordChange(it) },
+//        isTeacherLoginAttempt = isTeacherLoginAttempt,
+//        userRoleChange = { viewModel.updateLoginAttemptRole(it) },
+//        uiState = uiState,
+//        isErrorSnackbar = isErrorSnackbar,
+//        snackbarHostState = snackbarHostState
+//    )
 
-                is LoginViewModel.LoginEvent.Success -> {
-                    isErrorSnackbar = false
-                    navController.navigate(Dashboard.route) {
-                        popUpTo(Login.route) { inclusive = true }
-                    }
+}
 
-                    // Show snackbar after navigation (optional)
-                    launch {
-                        snackbarHostState.showSnackbar("Login Successful 🎉")
-                    }
-                }
-
-                is LoginViewModel.LoginEvent.TokenExpired -> {
-                    isErrorSnackbar = true
-                    snackbarHostState.showSnackbar("Session expired. Please log in again.")
-                }
-            }
-        }
-    }
+@Composable
+fun AuthContent(
+    email: String,
+    onEmailChange: (String) -> Unit,
+    password: String,
+    onPasswordChange: (String) -> Unit,
+    isTeacherLoginAttempt: Boolean,
+    userRoleChange: (Boolean) -> Unit,
+    onLoginClick: () -> Unit,
+    uiState: UiState,
+    isErrorSnackbar: Boolean,
+    snackbarHostState: SnackbarHostState,
+){
+    // Animations for card entrance
+    val cardScale by animateFloatAsState(
+        targetValue = if (uiState is UiState.Success) 0.95f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy),
+        label = "cardScale"
+    )
+    var showPassword by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 48.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center),
-                        color = MaterialTheme.colorScheme.primary,
-                        strokeWidth = 2.dp,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 48.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = 2.dp,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
             }
         },
         snackbarHost = {
@@ -164,9 +160,9 @@ fun AuthScreen(
                     isError = isErrorSnackbar,
                     onActionClick = {
                         data.dismiss()
-                        if (isErrorSnackbar) {
-                            viewModel.retryLogin()
-                        }
+//                        if (isErrorSnackbar) {
+//                            viewModel.retryLogin()
+//                        }
                     },
                     actionLabel = if (isErrorSnackbar) "Retry" else "OK",
                 )
@@ -235,13 +231,13 @@ fun AuthScreen(
                                 label = "Student",
                                 icon = Icons.Rounded.Person,
                                 selected = !isTeacherLoginAttempt,
-                                onClick = { viewModel.updateLoginAttemptRole(false) }
+                                onClick = { userRoleChange(!isTeacherLoginAttempt) }
                             )
                             RoleFilterChip(
                                 label = "Teacher",
                                 icon = Icons.Default.Person2,
                                 selected = isTeacherLoginAttempt,
-                                onClick = { viewModel.updateLoginAttemptRole(true) }
+                                onClick = { userRoleChange(!isTeacherLoginAttempt) }
                             )
                         }
 
@@ -250,10 +246,10 @@ fun AuthScreen(
                         // Email Input with Focus Animation
                         AnimatedTextField(
                             value = email,
-                            onValueChange = { viewModel.updateEmail(it) },
+                            onValueChange = { onEmailChange(it) },
                             label = "Email",
                             icon = Icons.Default.Email,
-                            isError = uiState.errorMessage != null && !email.matches(Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"))
+                            // isError = uiState.errorMessage != null && !email.contains("@"),
                         )
                         val isEmailValid = email.matches(Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"))
                         if(!isEmailValid){
@@ -272,10 +268,10 @@ fun AuthScreen(
                         // Password Input with Focus Animation
                         AnimatedTextField(
                             value = password,
-                            onValueChange = { viewModel.updatePassword(it) },
+                            onValueChange = { onPasswordChange(it) },
                             label = "Password",
                             icon = Icons.Default.Lock,
-                            isError = uiState.errorMessage != null && password.length < 6,
+                            // isError = uiState.errorMessage != null && password.length < 6,
                             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                             trailingIcon = {
                                 IconButton(onClick = { showPassword = !showPassword }) {
@@ -305,16 +301,16 @@ fun AuthScreen(
 
                         // Animated Sign In Button
                         val buttonScale by animateFloatAsState(
-                            targetValue = if (isEmailValid && isPasswordValid && !uiState.isLoading) 1f else 0.95f,
+                            targetValue = if (isEmailValid && isPasswordValid) 1f else 0.95f,
                             animationSpec = tween(durationMillis = 800),
                             label = "buttonScale"
                         )
                         Button(
-                            onClick = { viewModel.onLoginClick() },
+                            onClick = { onLoginClick() },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .scale(buttonScale),
-                            enabled = isEmailValid && isPasswordValid && !uiState.isLoading,
+                            enabled = isEmailValid && isPasswordValid ,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -389,7 +385,7 @@ private fun AnimatedTextField(
     onValueChange: (String) -> Unit,
     label: String,
     icon: ImageVector,
-    isError: Boolean,
+    isError: Boolean = false,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     trailingIcon: @Composable (() -> Unit)? = null
 ) {
@@ -439,9 +435,17 @@ private fun AnimatedTextField(
 @Preview
 @Composable
 fun AuthScreenPreview() {
-    AuthScreen(
-        navController = rememberNavController(),
-        viewModel = hiltViewModel()
+    AuthContent(
+        email = "",
+        onEmailChange = {},
+        password = "",
+        onPasswordChange = {},
+        isTeacherLoginAttempt = false,
+        userRoleChange = {},
+        onLoginClick = {},
+        uiState = UiState.Loading,
+        isErrorSnackbar = false,
+        snackbarHostState = SnackbarHostState()
     )
 }
 

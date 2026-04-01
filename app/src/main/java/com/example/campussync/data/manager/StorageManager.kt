@@ -11,7 +11,7 @@ interface StorageManager {
         fileName: Preferences.Key<String>
     )
     suspend fun saveData(
-        authToken: String,
+        data: String,
         fileName: Preferences.Key<String>
     )
 }

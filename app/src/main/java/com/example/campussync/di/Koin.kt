@@ -10,7 +10,11 @@ fun initKoin(appDeclaration: KoinAppDeclaration? = null) {
         appDeclaration?.invoke(this)
         modules(
             networkModule,
-            appModule
+            appModule,
+            apiModule,
+            repoModule,
+            managerModule,
+            connectivityObserverModule
         )
     }
 }

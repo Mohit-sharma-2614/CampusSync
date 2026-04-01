@@ -4,7 +4,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.CoroutineContext
@@ -14,10 +13,10 @@ abstract class BaseUseCase<T,Params>{
 
     fun execute(
         params: Params,
+        coroutineScope: CoroutineScope,
         onSuccess: suspend (T) -> Unit,
         onError: suspend (e: Exception) -> Unit,
         onCancel: suspend (e: CancellationException) -> Unit = {},
-        coroutineScope: CoroutineScope,
         executeContext: CoroutineContext = Dispatchers.IO,
         resultContext: CoroutineContext = Dispatchers.Main
     ) : Job? =
