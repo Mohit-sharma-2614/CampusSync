@@ -7,7 +7,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.serialization)
 
-    id("com.google.dagger.hilt.android")
+    // id("com.google.dagger.hilt.android")
 }
 
 kotlin {
@@ -68,10 +68,10 @@ dependencies {
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.auth)
 
-    implementation(libs.hilt.android)
-    implementation(libs.androidx.compose.material3)
-    ksp(libs.hilt.android.compiler)
-    implementation(libs.androidx.hilt.navigation.compose)
+//    implementation(libs.hilt.android)
+//    implementation(libs.androidx.compose.material3)
+//    ksp(libs.hilt.android.compiler)
+//    implementation(libs.androidx.hilt.navigation.compose)
 
     implementation(libs.retrofit2.retrofit)
 

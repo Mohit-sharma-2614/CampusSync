@@ -44,7 +44,7 @@ val networkModule = module {
                         setBody(mapOf("refreshToken" to tokenManager.getRefreshToken()))
                     }
 
-                    val newToken = response.body<RefreshTokenInputDto>().token
+                    val newToken = response.body<RefreshTokenInputDto>().refreshToken
                     tokenManager.saveToken(newToken)
 
                     newToken

@@ -1,6 +1,6 @@
 package com.example.campussync.data.remote.dto.enrollment
 
-import kotlinx.serialization.Contextual
+import com.example.campussync.utils.LocalDateTimeSerializer
 import kotlinx.serialization.Serializable
 import java.time.LocalDateTime
 
@@ -8,6 +8,6 @@ import java.time.LocalDateTime
 data class EnrollmentInputDto(
     val studentId: Long,
     val courseOfferingId: Long,
-    @Contextual
+    @Serializable(with = LocalDateTimeSerializer::class)
     val createdAt: LocalDateTime?
 )

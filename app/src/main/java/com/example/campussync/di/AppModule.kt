@@ -26,19 +26,19 @@ val managerModule = module {
     single<StorageManager> { StorageManagerImpl(get()) }
     single<TokenManager> { TokenManagerImpl(get()) }
     single<NetworkObserver> { NetworkObserverImpl(get()) }
-    single { SessionManager(get(), get(), get(), get(), get()) }
+    single { SessionManager(get(), get(), get(), get(), get(),get()) }
     single<UserCredentialManager> { UserCredentialManagerImpl(get()) }
 }
 
 val appModule = module {
     single { AbsViewModel.AbsDependencies(get(), get()) }
-    single { AuthViewModel(connectivityObserver = get(), tokenManager = get()) }
-    single { AbsViewModel(dependencies = get()) }
+    single { AuthViewModel(dependencies = get(), loginUseCase = get()) }
+
 }
 
 
 val apiModule = module {
-    single { UserApi(client = get(PUBLIC_CLIENT)) }
+    single { UserApi(publicClient = get(PUBLIC_CLIENT), authClient = get(AUTH_CLIENT)) }
     single { StudentApi(client = get(PUBLIC_CLIENT)) }
     single { TeacherApi(client = get(PUBLIC_CLIENT)) }
 }

@@ -27,7 +27,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -139,19 +138,19 @@ fun AuthContent(
 
     Scaffold(
         topBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 48.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = MaterialTheme.colorScheme.primary,
-                    strokeWidth = 2.dp,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            }
+//            Box(
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .padding(top = 48.dp),
+//                contentAlignment = Alignment.Center
+//            ) {
+//                CircularProgressIndicator(
+//                    modifier = Modifier.align(Alignment.Center),
+//                    color = MaterialTheme.colorScheme.primary,
+//                    strokeWidth = 2.dp,
+//                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+//                )
+//            }
         },
         snackbarHost = {
             SnackbarHost(snackbarHostState) { data ->
@@ -440,7 +439,7 @@ fun AuthScreenPreview() {
         onEmailChange = {},
         password = "",
         onPasswordChange = {},
-        isTeacherLoginAttempt = false,
+        isTeacherLoginAttempt = true,
         userRoleChange = {},
         onLoginClick = {},
         uiState = UiState.Loading,

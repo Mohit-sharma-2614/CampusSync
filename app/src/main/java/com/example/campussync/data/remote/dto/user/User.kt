@@ -2,17 +2,17 @@ package com.example.campussync.data.remote.dto.user
 
 import com.example.campussync.data.remote.dto.enums.UserRole
 import com.example.campussync.data.remote.dto.enums.UserStatus
-import kotlinx.serialization.Contextual
+import com.example.campussync.utils.TimestampSerializer
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 
 @Serializable
 data class User(
-    val id: Long,
+    val id: Long?,
     val name: String,
     val email: String,
-    val role: UserRole,
-    val status: UserStatus,
-    @Contextual
-    val createdAt: Timestamp
+    val role: UserRole?,
+    val status: UserStatus?,
+    @Serializable(with = TimestampSerializer::class)
+    val createdAt: Timestamp?
 )

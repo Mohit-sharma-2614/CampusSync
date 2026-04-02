@@ -13,43 +13,38 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
-import javax.inject.Inject
 
-class UserApi @Inject constructor(
-    private val client: HttpClient
+class UserApi(
+    private val publicClient: HttpClient,
+    private val authClient: HttpClient
 ) {
-    suspend fun loginStudent(
-        loginDto: UserLoginDto
-    ): StudentDto {
-        return client.post("student/login") {
+
+    suspend fun loginStudent(loginDto: UserLoginDto): StudentDto {
+        return publicClient.post("student/login") {
             setBody(loginDto)
         }.body()
     }
 
-    suspend fun loginTeacher(
-        loginDto: UserLoginDto
-    ): TeacherDto {
-        return client.post("teacher/login") {
+    suspend fun loginTeacher(loginDto: UserLoginDto): TeacherDto {
+        return publicClient.post("teacher/login") {
             contentType(ContentType.Application.Json)
             setBody(loginDto)
         }.body()
     }
 
     suspend fun logOut(refreshTokenInputDto: RefreshTokenInputDto): AuthDto {
-        return client.post("/api/auth/logout"){
+        return authClient.post("/api/auth/logout") {
             contentType(ContentType.Application.Json)
             setBody(refreshTokenInputDto)
         }.body()
     }
 
     suspend fun validateToken(): AuthDto {
-        return client.post("/api/auth/validate-token"){
-
-        }.body()
+        return authClient.post("/api/auth/validate-token").body()
     }
 
     suspend fun refreshToken(refreshTokenInputDto: RefreshTokenInputDto): RefreshTokenResponseDto {
-        return client.post("/api/auth/refreshtoken"){
+        return authClient.post("/api/auth/refreshtoken") {
             contentType(ContentType.Application.Json)
             setBody(refreshTokenInputDto)
         }.body()

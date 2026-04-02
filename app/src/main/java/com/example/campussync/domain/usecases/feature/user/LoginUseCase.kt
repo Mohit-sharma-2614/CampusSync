@@ -70,3 +70,13 @@ class LoginUseCase(
 fun String.isCorrectEmail(): Boolean {
     return Patterns.EMAIL_ADDRESS.matcher(this).matches()
 }
+fun String.isCorrectPassword(): Boolean{
+    if (length < 8) return false
+
+    val hasUpperCase = any { it.isUpperCase() }
+    val hasLowerCase = any { it.isLowerCase() }
+    val hasDigit = any { it.isDigit() }
+    val hasSpecialChar = any { !it.isLetterOrDigit() }
+
+    return hasUpperCase && hasLowerCase && hasDigit && hasSpecialChar
+}
