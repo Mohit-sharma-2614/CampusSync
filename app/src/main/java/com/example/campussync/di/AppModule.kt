@@ -1,5 +1,6 @@
 package com.example.campussync.di
 
+import com.example.campussync.CampusSyncViewModel
 import com.example.campussync.data.manager.StorageManager
 import com.example.campussync.data.manager.TokenManager
 import com.example.campussync.data.manager.UserCredentialManager
@@ -18,11 +19,28 @@ import com.example.campussync.domain.observer.NetworkObserverImpl
 import com.example.campussync.domain.repository.StudentRepoImpl
 import com.example.campussync.domain.repository.TeacherRepoImpl
 import com.example.campussync.domain.repository.UserRepoImpl
+import com.example.campussync.domain.usecases.feature.network.CheckNetworkUseCase
+import com.example.campussync.domain.usecases.feature.student.GetStudentByIdUseCase
+import com.example.campussync.domain.usecases.feature.student.RegisterStudentUseCase
+import com.example.campussync.domain.usecases.feature.student.UpdateStudentUseCase
+import com.example.campussync.domain.usecases.feature.teacher.GetTeacherByIdUseCase
+import com.example.campussync.domain.usecases.feature.teacher.RegisterTeacherUseCase
+import com.example.campussync.domain.usecases.feature.teacher.UpdateTeacherUseCase
+import com.example.campussync.domain.usecases.feature.user.GetUserByIdUseCase
+import com.example.campussync.domain.usecases.feature.user.LogOutUseCase
+import com.example.campussync.domain.usecases.feature.user.LoginUseCase
+import com.example.campussync.domain.usecases.feature.user.RefreshTokenUseCase
+import com.example.campussync.domain.usecases.feature.user.SaveTokenUseCase
+import com.example.campussync.domain.usecases.feature.user.ValidateTokenUseCase
 import com.example.campussync.persentation.auth.AuthViewModel
 import com.example.campussync.persentation.base.AbsViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.koin.dsl.module
 
 val managerModule = module {
+    single<CoroutineScope> { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
     single<StorageManager> { StorageManagerImpl(get()) }
     single<TokenManager> { TokenManagerImpl(get()) }
     single<NetworkObserver> { NetworkObserverImpl(get()) }
@@ -31,9 +49,27 @@ val managerModule = module {
 }
 
 val appModule = module {
-    single { AbsViewModel.AbsDependencies(get(), get()) }
+    single { StorageManagerImpl(get()) }
     single { AuthViewModel(dependencies = get(), loginUseCase = get()) }
+    single { AbsViewModel.AbsDependencies(get(), get()) }
+    single { CampusSyncViewModel(get()) }
+}
 
+val useCaseModule = module {
+    single { CheckNetworkUseCase(get()) }
+    single { ValidateTokenUseCase(get()) }
+    single { GetUserByIdUseCase(get()) }
+    single { LoginUseCase(get(),get(),get()) }
+    single { GetUserByIdUseCase(get()) }
+    single { RefreshTokenUseCase(get()) }
+    single { LogOutUseCase(get(),get(),get()) }
+    single { SaveTokenUseCase(get(),get()) }
+    single { GetTeacherByIdUseCase(get()) }
+    single { RegisterTeacherUseCase(get()) }
+    single { UpdateTeacherUseCase(get()) }
+    single { GetStudentByIdUseCase(get()) }
+    single { RegisterStudentUseCase(get()) }
+    single { UpdateStudentUseCase(get()) }
 }
 
 

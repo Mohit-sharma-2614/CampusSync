@@ -1,5 +1,6 @@
 package com.example.campussync.domain.manager
 
+import android.util.Log
 import com.example.campussync.data.entity.state.SessionState
 import com.example.campussync.data.manager.TokenManager
 import com.example.campussync.data.manager.UserCredentialManager
@@ -29,7 +30,9 @@ class SessionManager(
 
     // Changed to suspend to avoid runBlocking
     private suspend fun getUserId(): String {
-        return getUserByIdUseCase.execute(GetUserByIdUseCase.Params.forGetUserId())
+        val userId = getUserByIdUseCase.execute(GetUserByIdUseCase.Params.forGetUserId())
+        Log.d("SessionManager", "getUserId: $userId")
+        return userId
     }
 
     private fun checkSession() {
@@ -37,27 +40,35 @@ class SessionManager(
             try {
                 val userId = getUserId()
                 val token = tokenManager.getToken()
+                Log.i("SessionManager", "checkSession: $userId $token")
 
                 if (userId.isBlank() || token.isBlank()) {
                     _sessionState.value = SessionState.Unauthenticated
+                    Log.e("SessionManager", "checkSession session state: Unauthenticated")
                     return@launch
                 }
                 validateToken(userId, token)
             } catch (e: Exception) {
+                Log.e("SessionManager", "checkSession: ${e.message}")
                 _sessionState.value = SessionState.Unauthenticated
+                Log.e("SessionManager", "session state: Unauthenticated")
             }
         }
     }
 
     private suspend fun validateToken(userId: String, token: String) {
+        Log.d("SessionManager", "validateToken: entered $userId $token")
         try {
             val result = validateTokenUseCase.execute(ValidateTokenUseCase.Params.validateToken())
+            Log.i("SessionManager", "validateToken: $result")
             if (result.valid) {
                 _sessionState.value = SessionState.Authenticated
+                Log.e("SessionManager", "validateToken session state: Authenticated")
             } else {
                 refreshToken(userId, token)
             }
         } catch (e: Exception) {
+            Log.e("SessionManager", "validateToken: ${e.message}")
             refreshToken(userId, token) // Try refresh on network error/failure
         }
     }
@@ -67,10 +78,13 @@ class SessionManager(
             val result = refreshTokenUseCase.execute(
                 RefreshTokenUseCase.Params.forRefreshToken(RefreshTokenInputDto(token))
             )
+            Log.i("SessionManager", "refreshToken: $result")
             tokenManager.saveToken(result.accessToken)
             tokenManager.saveRefreshToken(result.refreshToken)
             _sessionState.value = SessionState.Authenticated
+            Log.e("SessionManager", "refreshToken session state: Authenticated")
         } catch (e: Exception) {
+            Log.e("SessionManager", "refreshToken: ${e.message}")
             logout()
         }
     }
@@ -81,6 +95,7 @@ class SessionManager(
             tokenManager.clearRefreshToken()
             userCredentialManager.clearUserId()
             _sessionState.value = SessionState.Unauthenticated
+            Log.e("SessionManager", "logout: session state: Unauthenticated")
         }
     }
 }

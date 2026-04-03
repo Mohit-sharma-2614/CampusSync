@@ -7,7 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresExtension
 import androidx.navigation.compose.rememberNavController
-import com.example.campussync.persentation.auth.AuthScreen
+import com.example.campussync.navigation.RootNavigation
 import com.example.campussync.ui.theme.CampusSyncTheme
 import org.koin.androidx.compose.koinViewModel
 
@@ -28,9 +28,9 @@ class MainActivity : ComponentActivity() {
                     navController = navController
                 )
 
-                AuthScreen(
-                    navController = rememberNavController()
-                )
+//                AuthScreen(
+//                    navController = rememberNavController()
+//                )
             }
         }
     }

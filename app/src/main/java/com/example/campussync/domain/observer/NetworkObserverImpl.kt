@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 class NetworkObserverImpl(
     private val context: Context
 ) : NetworkObserver{
-    override fun observe(): Flow<NetworkObserver.Status> = callbackFlow<NetworkObserver.Status> {
+    override fun observe(): Flow<NetworkObserver.Status> = callbackFlow {
 
         val connectivityManager by lazy {
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager

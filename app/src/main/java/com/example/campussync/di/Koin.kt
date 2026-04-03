@@ -9,6 +9,7 @@ fun initKoin(appDeclaration: KoinAppDeclaration? = null) {
     startKoin {
         appDeclaration?.invoke(this)
         modules(
+            useCaseModule,
             networkModule,
             appModule,
             apiModule,

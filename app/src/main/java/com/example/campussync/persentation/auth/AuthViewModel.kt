@@ -1,5 +1,6 @@
 package com.example.campussync.persentation.auth
 
+import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.example.campussync.data.entity.state.UiState
 import com.example.campussync.data.remote.dto.enums.UserRole
@@ -56,68 +57,104 @@ class AuthViewModel(
         _uiData.update { it.copy(loginCreds = it.loginCreds.copy(isTeacherLoginAttempt = isTeacher)) }
     }
 
-    fun login() {
-        val creds = _uiData.value.loginCreds
-        val email = creds.email
-        val password = creds.password
-        if(!email.isCorrectEmail()){
-            _uiData.update { it.copy(
-                credsError = it.credsError.copy(emailError = "Email should be valid. :)"))
-            }
-            return
+    fun resetCredError() {
+        _uiData.update {
+            it.copy(
+                credsError = it.credsError.copy(
+                    emailError = null,
+                    passwordError = null
+                )
+            )
         }
-        if (!password.isCorrectPassword()){
-            _uiData.update { it.copy(
-                credsError = it.credsError.copy(passwordError = "Password must be 8 words: T_T")
-            ) }
-            return
-        }
-
-        _uiState.value = UiState.Loading
-
-        val dto = UserLoginDto(email, password)
-        val params = if (creds.isTeacherLoginAttempt) {
-            LoginUseCase.Params.teacher(dto)
-        } else {
-            LoginUseCase.Params.student(dto)
-        }
-
-        loginUseCase.execute(
-            params,
-            viewModelScope,
-            onSuccess = { user ->
-                if(creds.isTeacherLoginAttempt){
-                    val teacher = user as com.example.campussync.domain.model.User.Teacher
-                    _uiData.update { it.copy(
-                        userData = it.userData.copy(
-                            id = teacher.id,
-                            name = teacher.name,
-                            email = teacher.email,
-                            role = UserRole.STUDENT,
-                            status = null,
-                            createdAt = null,
-                        )
-                    ) }
-                } else {
-                    val student = user as com.example.campussync.domain.model.User.Student
-                    _uiData.update { it.copy(
-                        userData = it.userData.copy(
-                            id = student.id,
-                            name = student.name,
-                            email = student.email,
-                            role = UserRole.STUDENT,
-                            status = null,
-                            createdAt = null,
-                        )
-                    ) }
-                }
-                // Note: Ensure your LoginUseCase saves the token to TokenManager internally
-                // Or call sessionManager.triggerManualCheck() here
-                _uiState.value = UiState.Success(user)
-            },
-            onError = { throwable ->
-                _uiState.value = UiState.Error(handleError(throwable, "Login Failed").message)
-            }
-        )
     }
+
+        fun login() {
+            resetCredError()
+            val creds = _uiData.value.loginCreds
+            val email = creds.email
+            val password = creds.password
+            var hasError = false
+
+            var emailError: String? = null
+            var passwordError: String? = null
+
+            if (!email.isCorrectEmail()) {
+                emailError = "Email should be valid. :)"
+                hasError = true
+            }
+
+            if (!password.isCorrectPassword()) {
+                passwordError = "Password must be 8 words: T_T"
+                hasError = true
+            }
+
+            if (hasError) {
+                _uiData.update {
+                    it.copy(
+                        credsError = it.credsError.copy(
+                            emailError = emailError,
+                            passwordError = passwordError
+                        )
+                    )
+                }
+                return
+            }
+
+            _uiState.value = UiState.Loading
+
+            val dto = UserLoginDto(email, password)
+            val params = if (creds.isTeacherLoginAttempt) {
+                Log.d("AuthViewModel", "login: teacher login attempt")
+                LoginUseCase.Params.teacher(dto)
+            } else {
+                Log.d("AuthViewModel", "login: student login attempt")
+                LoginUseCase.Params.student(dto)
+            }
+
+            loginUseCase.execute(
+                params,
+                viewModelScope,
+                onSuccess = { user ->
+                    if (creds.isTeacherLoginAttempt) {
+                        Log.d("AuthViewModel", "login: teacher login success")
+                        val teacher = user as com.example.campussync.domain.model.User.Teacher
+                        _uiData.update {
+                            it.copy(
+                                userData = it.userData.copy(
+                                    id = teacher.id,
+                                    name = teacher.name,
+                                    email = teacher.email,
+                                    role = UserRole.STUDENT,
+                                    status = null,
+                                    createdAt = null,
+                                )
+                            )
+                        }
+                    } else {
+                        val student = user as com.example.campussync.domain.model.User.Student
+                        Log.d("AuthViewModel", "login: student login success")
+                        _uiData.update {
+                            it.copy(
+                                userData = it.userData.copy(
+                                    id = student.id,
+                                    name = student.name,
+                                    email = student.email,
+                                    role = UserRole.STUDENT,
+                                    status = null,
+                                    createdAt = null,
+                                )
+                            )
+                        }
+                    }
+                    // Note: Ensure your LoginUseCase saves the token to TokenManager internally
+                    // Or call sessionManager.triggerManualCheck() here
+                    _uiState.value = UiState.Success(user)
+                },
+                onError = { throwable ->
+                    Log.d("AuthViewModel", "login: failed")
+                    _uiState.value = UiState.Error(handleError(throwable, "Login Failed").message)
+                }
+            )
+        }
+
 }

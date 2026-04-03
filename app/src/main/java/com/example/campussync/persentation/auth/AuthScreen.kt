@@ -1,5 +1,6 @@
 package com.example.campussync.persentation.auth
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -36,12 +37,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,7 +62,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.campussync.data.entity.state.UiState
-import com.example.campussync.data.observer.NetworkObserver
 import com.example.campussync.persentation.components.RichSnackbarComponent
 import org.koin.androidx.compose.koinViewModel
 
@@ -88,30 +86,19 @@ fun AuthScreen(
     val password = uiDataState.loginCreds.password
     val isTeacherLoginAttempt = uiDataState.loginCreds.isTeacherLoginAttempt
 
-    // Show snackbar for connectivity
-    LaunchedEffect(networkState) {
-        if (networkState != NetworkObserver.Status.Available) {
-            snackbarHostState.currentSnackbarData?.dismiss()
-            snackbarHostState.showSnackbar(
-                message = "Internet is turned off. Please check your connection.",
-                duration = SnackbarDuration.Indefinite
-            )
-        } else {
-            snackbarHostState.currentSnackbarData?.dismiss()
-        }
-    }
-
-//    AuthContent(
-//        email = email,
-//        onEmailChange = { viewModel.onEmailChange(it) },
-//        password = password,
-//        onPasswordChange = { viewModel.onPasswordChange(it) },
-//        isTeacherLoginAttempt = isTeacherLoginAttempt,
-//        userRoleChange = { viewModel.updateLoginAttemptRole(it) },
-//        uiState = uiState,
-//        isErrorSnackbar = isErrorSnackbar,
-//        snackbarHostState = snackbarHostState
-//    )
+    AuthContent(
+        email = email,
+        onEmailChange = { viewModel.onEmailChange(it) },
+        password = password,
+        onPasswordChange = { viewModel.onPasswordChange(it) },
+        isTeacherLoginAttempt = isTeacherLoginAttempt,
+        userRoleChange = { viewModel.toggleLoginType(it) },
+        onLoginClick = { viewModel.login() },
+        uiState = uiState,
+        credError = uiDataState.credsError,
+        isErrorSnackbar = isErrorSnackbar,
+        snackbarHostState = snackbarHostState,
+    )
 
 }
 
@@ -125,6 +112,7 @@ fun AuthContent(
     userRoleChange: (Boolean) -> Unit,
     onLoginClick: () -> Unit,
     uiState: UiState,
+    credError: CredsError,
     isErrorSnackbar: Boolean,
     snackbarHostState: SnackbarHostState,
 ){
@@ -248,19 +236,9 @@ fun AuthContent(
                             onValueChange = { onEmailChange(it) },
                             label = "Email",
                             icon = Icons.Default.Email,
-                            // isError = uiState.errorMessage != null && !email.contains("@"),
+                            isError = !credError.emailError.isNullOrEmpty(),
+                            errorMessage = credError.emailError ?: ""
                         )
-                        val isEmailValid = email.matches(Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"))
-                        if(!isEmailValid){
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Email is invalid",
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(start = 16.dp),
-                                textAlign = TextAlign.Start
-                            )
-                        }
 
                         Spacer(modifier = Modifier.height(16.dp))
 
@@ -270,7 +248,7 @@ fun AuthContent(
                             onValueChange = { onPasswordChange(it) },
                             label = "Password",
                             icon = Icons.Default.Lock,
-                            // isError = uiState.errorMessage != null && password.length < 6,
+                            isError = !credError.passwordError.isNullOrEmpty(),
                             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                             trailingIcon = {
                                 IconButton(onClick = { showPassword = !showPassword }) {
@@ -280,27 +258,15 @@ fun AuthContent(
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                            }
+                            },
+                            errorMessage = credError.passwordError ?: ""
                         )
-                        // Validation
-                        val isPasswordValid = true//password.length >= 6
-
-                        if(!isPasswordValid){
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Password must be at least 6 characters",
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(start = 16.dp),
-                                textAlign = TextAlign.Start
-                            )
-                        }
 
                         Spacer(modifier = Modifier.height(24.dp))
 
                         // Animated Sign In Button
                         val buttonScale by animateFloatAsState(
-                            targetValue = if (isEmailValid && isPasswordValid) 1f else 0.95f,
+                            targetValue = if (credError.passwordError == "" && credError.emailError == "") 1f else 0.95f,
                             animationSpec = tween(durationMillis = 800),
                             label = "buttonScale"
                         )
@@ -309,7 +275,7 @@ fun AuthContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .scale(buttonScale),
-                            enabled = isEmailValid && isPasswordValid ,
+                            enabled = true,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -385,6 +351,7 @@ private fun AnimatedTextField(
     label: String,
     icon: ImageVector,
     isError: Boolean = false,
+    errorMessage: String = "",
     visualTransformation: VisualTransformation = VisualTransformation.None,
     trailingIcon: @Composable (() -> Unit)? = null
 ) {
@@ -396,38 +363,60 @@ private fun AnimatedTextField(
         label = "borderColor"
     )
 
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = {
-            Text(
-                label,
-                color = if (focusState.value || value.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.Center
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = {
+                Text(
+                    label,
+                    color = if (focusState.value || value.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    icon,
+                    contentDescription = "$label TextField",
+                    tint = if (focusState.value || isError) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            trailingIcon = trailingIcon,
+            visualTransformation = visualTransformation,
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester)
+                .onFocusChanged { focusState.value = it.isFocused },
+            singleLine = true,
+            isError = isError,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = borderColor,
+                unfocusedBorderColor = borderColor,
+                errorBorderColor = borderColor,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                cursorColor = MaterialTheme.colorScheme.primary
             )
-        },
-        leadingIcon = {
-            Icon(
-                icon,
-                contentDescription = "$label TextField",
-                tint = if (focusState.value || isError) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        },
-        trailingIcon = trailingIcon,
-        visualTransformation = visualTransformation,
-        modifier = Modifier
-            .fillMaxWidth()
-            .focusRequester(focusRequester)
-            .onFocusChanged { focusState.value = it.isFocused },
-        singleLine = true,
-        isError = isError,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = borderColor,
-            unfocusedBorderColor = borderColor,
-            errorBorderColor = borderColor,
-            focusedLabelColor = MaterialTheme.colorScheme.primary,
-            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            cursorColor = MaterialTheme.colorScheme.primary
         )
+        AnimatedVisibility(isError) {
+            ErrorMessage(errorMessage)
+        }
+    }
+}
+
+@Composable
+fun ErrorMessage(
+    message: String,
+){
+    Text(
+        text = message,
+        color = MaterialTheme.colorScheme.error,
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+        textAlign = TextAlign.Start
     )
 }
 
@@ -444,7 +433,11 @@ fun AuthScreenPreview() {
         onLoginClick = {},
         uiState = UiState.Loading,
         isErrorSnackbar = false,
-        snackbarHostState = SnackbarHostState()
+        snackbarHostState = SnackbarHostState(),
+        credError = CredsError(
+            emailError = null,
+            passwordError = null
+        ),
     )
 }
 

@@ -1,5 +1,6 @@
 package com.example.campussync.domain.usecases.feature.user
 
+import android.util.Log
 import android.util.Patterns
 import com.example.campussync.data.manager.TokenManager
 import com.example.campussync.data.manager.UserCredentialManager
@@ -15,8 +16,10 @@ class LoginUseCase(
 ) : BaseUseCase<User, LoginUseCase.Params>() {
 
     override suspend fun buildUseCase(params: Params): User {
+        Log.d("LoginUseCase", "buildUseCase: called")
         return when (params.loginType) {
             LoginType.TEACHER -> {
+                Log.d("LoginUseCase", "buildUseCase: teacher login attempt")
                 val user = repo.loginTeacher(params.loginDto)
                 val teacher = user as User.Teacher
                 userCredentialManager.saveUserId(teacher.id.toString())
@@ -25,6 +28,7 @@ class LoginUseCase(
                 user
             }
             LoginType.STUDENT -> {
+                Log.d("LoginUseCase", "buildUseCase: student login attempt")
                 val user = repo.loginStudent(params.loginDto)
                 val student = user as User.Student
                 userCredentialManager.saveUserId(student.id.toString())
