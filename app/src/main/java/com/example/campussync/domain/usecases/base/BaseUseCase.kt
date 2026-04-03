@@ -1,5 +1,6 @@
 package com.example.campussync.domain.usecases.base
 
+import android.util.Log
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,15 +25,18 @@ abstract class BaseUseCase<T,Params>{
             coroutineScope.launch(executeContext) {
                 try {
                     val result = buildUseCase(params)
+                    Log.d("BaseUseCase", "execute: $result")
                     withContext(resultContext) {
                         onSuccess(result)
                     }
                 } catch (e: Exception) {
                     if (e is CancellationException) {
+                        Log.d("BaseUseCase", "execute: cancellation exception $e")
                         coroutineScope.launch(resultContext) {
                             onCancel(e)
                         }
                     } else {
+                        Log.d("BaseUseCase", "execute: exception $e")
                         withContext(resultContext) {
                             onError(e)
                         }
@@ -41,10 +45,12 @@ abstract class BaseUseCase<T,Params>{
             }
         } catch (e: Exception) {
             if (e is CancellationException) {
+                Log.d("BaseUseCase", "execute: cancellation exception $e")
                 coroutineScope.launch(resultContext) {
                     onCancel(e)
                 }
             }
+            Log.d("BaseUseCase", "execute: exception $e")
             null
         }
 
@@ -58,10 +64,12 @@ abstract class BaseUseCase<T,Params>{
         withContext(executeContext) {
             try {
                 val result = buildUseCase(params)
+                Log.d("BaseUseCase", "execute: $result")
                 withContext(resultContext) {
                     onSuccess(result)
                 }
             } catch (e: Exception) {
+                Log.d("BaseUseCase", "execute: exception ${e.message}")
                 withContext(resultContext) {
                     onError(e)
                 }
@@ -69,6 +77,9 @@ abstract class BaseUseCase<T,Params>{
         }
     }
 
-    suspend fun execute(params: Params): T = buildUseCase(params)
+    suspend fun execute(params: Params): T {
+        Log.d("BaseUseCase", "execute: called")
+        return buildUseCase(params)
+    }
 }
 

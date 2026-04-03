@@ -8,7 +8,6 @@ import com.example.campussync.data.remote.dto.user.User
 import com.example.campussync.data.remote.dto.user.UserLoginDto
 import com.example.campussync.domain.usecases.feature.user.LoginUseCase
 import com.example.campussync.domain.usecases.feature.user.isCorrectEmail
-import com.example.campussync.domain.usecases.feature.user.isCorrectPassword
 import com.example.campussync.persentation.base.AbsViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -83,10 +82,11 @@ class AuthViewModel(
                 hasError = true
             }
 
-            if (!password.isCorrectPassword()) {
-                passwordError = "Password must be 8 words: T_T"
-                hasError = true
-            }
+            // TODO: Uncomment in actual implementation
+//            if (!password.isCorrectPassword()) {
+//                passwordError = "Password must be 8 words: T_T"
+//                hasError = true
+//            }
 
             if (hasError) {
                 _uiData.update {

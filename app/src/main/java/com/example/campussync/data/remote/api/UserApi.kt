@@ -20,9 +20,11 @@ class UserApi(
 ) {
 
     suspend fun loginStudent(loginDto: UserLoginDto): StudentDto {
-        return publicClient.post("student/login") {
+        val response = publicClient.post("student/login") {
             setBody(loginDto)
-        }.body()
+        }
+        mapError(response.status.value)
+        return response.body()
     }
 
     suspend fun loginTeacher(loginDto: UserLoginDto): TeacherDto {
