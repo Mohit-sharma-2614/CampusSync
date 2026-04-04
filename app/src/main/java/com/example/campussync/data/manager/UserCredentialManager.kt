@@ -1,8 +1,7 @@
 package com.example.campussync.data.manager
 
 interface UserCredentialManager {
-    fun saveUserId(userId: String)
-    fun getUserId(): String
-
-    fun clearUserId()
+    suspend fun saveUserId(userId: String)
+    suspend fun getUserId(): String
+    suspend fun clearUserId()
 }

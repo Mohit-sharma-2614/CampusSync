@@ -1,11 +1,10 @@
 package com.example.campussync.data.manager
 
 interface TokenManager {
-    fun saveRefreshToken(token: String)
-    fun getRefreshToken(): String?
-    fun clearRefreshToken()
-    fun saveToken(token: String)
-    fun getToken(): String
-    fun clearToken()
+    suspend fun saveRefreshToken(token: String)
+    suspend fun getRefreshToken(): String?
+    suspend fun clearRefreshToken()
+    suspend fun saveToken(token: String)
+    suspend fun getToken(): String
+    suspend fun clearToken()
 }
-

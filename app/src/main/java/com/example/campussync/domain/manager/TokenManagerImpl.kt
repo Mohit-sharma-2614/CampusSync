@@ -4,11 +4,7 @@ import android.util.Log
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.example.campussync.data.manager.StorageManager
 import com.example.campussync.data.manager.TokenManager
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 class TokenManagerImpl(
     private val storageManager: StorageManager
@@ -16,53 +12,34 @@ class TokenManagerImpl(
     private val AUTH_TOKEN = stringPreferencesKey("auth_token")
     private val REFRESH_TOKEN = stringPreferencesKey("refresh_token")
 
-    val coroutineScope = CoroutineScope(Dispatchers.IO)
-
-    override fun saveRefreshToken(token: String) {
-        coroutineScope.launch {
-            storageManager.saveData(token, REFRESH_TOKEN)
-            Log.d("TokenManager", "saveRefreshToken: $token")
-        }
+    override suspend fun saveRefreshToken(token: String) {
+        storageManager.saveData(token, REFRESH_TOKEN)
+        Log.d("TokenManager", "saveRefreshToken: saved")
     }
 
-    override fun getRefreshToken(): String {
-        return runBlocking(Dispatchers.IO) {
-            val refreshToken = storageManager.readPrefs(REFRESH_TOKEN).first()
-            Log.d("TokenManager", "getRefreshToken: $refreshToken")
-            refreshToken
-        }
+    override suspend fun getRefreshToken(): String? {
+        val refreshToken = storageManager.readPrefs(REFRESH_TOKEN).first()
+        return refreshToken.ifBlank { null }
     }
 
-    override fun clearRefreshToken() {
-        coroutineScope.launch {
-            storageManager.clearPrefs(REFRESH_TOKEN)
-            Log.d("TokenManager", "clearRefreshToken: cleared")
-        }
+    override suspend fun clearRefreshToken() {
+        storageManager.clearPrefs(REFRESH_TOKEN)
+        Log.d("TokenManager", "clearRefreshToken: cleared")
     }
 
-    override fun saveToken(token: String) {
-        coroutineScope.launch {
-            storageManager.saveData(
-                token,
-                AUTH_TOKEN
-            )
-            Log.d("TokenManager", "saveToken: $token")
-        }
+    override suspend fun saveToken(token: String) {
+        storageManager.saveData(token, AUTH_TOKEN)
+        Log.d("TokenManager", "saveToken: saved")
     }
 
-    override fun getToken(): String {
-        return runBlocking(Dispatchers.IO) {
-            val token = storageManager.readPrefs(AUTH_TOKEN).first()
-            Log.d("TokenManager", "getToken: $token")
-            token
-        }
+    override suspend fun getToken(): String {
+        val token = storageManager.readPrefs(AUTH_TOKEN).first()
+        Log.d("TokenManager", "getToken: $token")
+        return token
     }
 
-    override fun clearToken() {
-        coroutineScope.launch {
-            storageManager.clearPrefs(AUTH_TOKEN)
-            Log.d("TokenManager", "clearToken: cleared")
-        }
+    override suspend fun clearToken() {
+        storageManager.clearPrefs(AUTH_TOKEN)
+        Log.d("TokenManager", "clearToken: cleared")
     }
-
 }

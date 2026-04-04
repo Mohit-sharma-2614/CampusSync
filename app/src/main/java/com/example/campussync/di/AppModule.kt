@@ -39,6 +39,7 @@ import com.example.campussync.persentation.dashboard.DashboardViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val managerModule = module {
@@ -52,10 +53,10 @@ val managerModule = module {
 
 val appModule = module {
     single { StorageManagerImpl(get()) }
-    single { AuthViewModel(dependencies = get(), loginUseCase = get()) }
+    viewModel { AuthViewModel(dependencies = get(), loginUseCase = get()) }
     single { AbsViewModel.AbsDependencies(get(), get()) }
-    single { CampusSyncViewModel(get(),get()) }
-    single { DashboardViewModel(get(),get(),get(),get(),get()) }
+    viewModel { CampusSyncViewModel(get(),get()) }
+    viewModel { DashboardViewModel(get(),get(),get(),get(),get()) }
 }
 
 val useCaseModule = module {
@@ -90,4 +91,3 @@ val repoModule = module {
     single<TeacherRepo> { TeacherRepoImpl(get()) }
 
 }
-

@@ -13,59 +13,75 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 
 class UserApi(
     private val publicClient: HttpClient,
     private val authClient: HttpClient
 ) {
 
+    private suspend fun ensureSuccess(response: HttpResponse) {
+        if (!response.status.isSuccess()) {
+            val errorBody = try { response.body<String>() } catch (e: Exception) { null }
+            val errorCode = response.status.value
+            throw Exception("API Error ($errorCode): ${errorBody ?: response.status.description}")
+        }
+    }
+
     suspend fun getUserById(id: Long): UserDto {
-        return publicClient.get("/user"){
-            url {
-                parameters.append("id", id.toString())
-            }
-        }.body()
+        val response = publicClient.get("/user") {
+            url { parameters.append("id", id.toString()) }
+        }
+        ensureSuccess(response)
+        return response.body()
     }
 
     suspend fun loginStudent(loginDto: UserLoginDto): StudentDto {
         val response = publicClient.post("student/login") {
+            contentType(ContentType.Application.Json)
             setBody(loginDto)
         }
-        mapError(response.status.value)
+        ensureSuccess(response)
         return response.body()
     }
 
     suspend fun loginTeacher(loginDto: UserLoginDto): TeacherDto {
-        return publicClient.post("teacher/login") {
+        val response = publicClient.post("teacher/login") {
             contentType(ContentType.Application.Json)
             setBody(loginDto)
-        }.body()
+        }
+        ensureSuccess(response)
+        return response.body()
     }
 
     suspend fun logOut(refreshTokenInputDto: RefreshTokenInputDto): AuthDto {
-        return authClient.post("/api/auth/logout") {
+        val response = authClient.post("/api/auth/logout") {
             contentType(ContentType.Application.Json)
             setBody(refreshTokenInputDto)
-        }.body()
+        }
+        ensureSuccess(response)
+        return response.body()
     }
 
     suspend fun validateToken(): AuthDto {
-        return authClient.post("/api/auth/validate-token").body()
+        val response = authClient.post("/api/auth/validate-token")
+        ensureSuccess(response)
+        return response.body()
     }
 
     suspend fun refreshToken(refreshTokenInputDto: RefreshTokenInputDto): RefreshTokenResponseDto {
-        return authClient.post("/api/auth/refreshtoken") {
+        val response = authClient.post("/api/auth/refreshtoken") {
             contentType(ContentType.Application.Json)
             setBody(refreshTokenInputDto)
-        }.body()
+        }
+        ensureSuccess(response)
+        return response.body()
     }
 }
 
-/**
- * Extension functions to easily wrap the DTOs into the sealed response.
- */
 fun StudentDto.toDomain() =
     User.Student(
         id = id,
@@ -74,6 +90,7 @@ fun StudentDto.toDomain() =
         jwtToke = jwtToken,
         refreshToken = refreshToken
     )
+
 fun TeacherDto.toDomain() =
     User.Teacher(
         id = id,

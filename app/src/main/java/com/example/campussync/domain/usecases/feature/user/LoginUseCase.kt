@@ -25,6 +25,7 @@ class LoginUseCase(
                 userCredentialManager.saveUserId(teacher.id.toString())
                 tokenManager.saveToken(teacher.jwtToke)
                 tokenManager.saveRefreshToken(teacher.refreshToken)
+                Log.d("LoginUseCase", "buildUseCase: teacher login success and credentials saved")
                 user
             }
             LoginType.STUDENT -> {
@@ -34,6 +35,7 @@ class LoginUseCase(
                 userCredentialManager.saveUserId(student.id.toString())
                 tokenManager.saveToken(student.jwtToke)
                 tokenManager.saveRefreshToken(student.refreshToken)
+                Log.d("LoginUseCase", "buildUseCase: student login success and credentials saved")
                 user
             }
         }
