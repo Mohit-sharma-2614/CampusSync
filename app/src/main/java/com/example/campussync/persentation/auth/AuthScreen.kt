@@ -98,6 +98,7 @@ fun AuthScreen(
         credError = uiDataState.credsError,
         isErrorSnackbar = isErrorSnackbar,
         snackbarHostState = snackbarHostState,
+        errorMessage = uiDataState.errorMessage ?: "Non"
     )
 
 }
@@ -112,6 +113,7 @@ fun AuthContent(
     userRoleChange: (Boolean) -> Unit,
     onLoginClick: () -> Unit,
     uiState: UiState,
+    errorMessage: String,
     credError: CredsError,
     isErrorSnackbar: Boolean,
     snackbarHostState: SnackbarHostState,
@@ -286,6 +288,8 @@ fun AuthContent(
                         ) {
                             Text("Sign In")
                         }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Error: $errorMessage")
                     }
                 }
             }
@@ -438,6 +442,7 @@ fun AuthScreenPreview() {
             emailError = null,
             passwordError = null
         ),
+        errorMessage = ""
     )
 }
 

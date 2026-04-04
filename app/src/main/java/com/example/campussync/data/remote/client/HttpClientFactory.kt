@@ -2,7 +2,6 @@ package com.example.campussync.data.remote.client
 
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.DefaultRequest
-import io.ktor.client.plugins.HttpSend
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
@@ -11,15 +10,13 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.header
-import io.ktor.client.request.request
 import io.ktor.http.encodedPath
 import io.ktor.serialization.kotlinx.json.json
-import okhttp3.internal.connection.ConnectInterceptor.intercept
 
 object HttpClientFactory {
     fun create(
         baseUrl: String,
-        tokenProvider: (() -> String?)? = null,
+        tokenProvider: (suspend () -> String?)? = null,
         onRefreshToken: (suspend () -> String?)? = null
     ): HttpClient {
         return HttpClient {
@@ -32,7 +29,7 @@ object HttpClientFactory {
             }
             install(DefaultRequest) {
                 url(baseUrl)
-                header("Content-Type","application/json")
+                header("Content-Type", "application/json")
             }
             install(HttpTimeout) {
                 requestTimeoutMillis = 15_000
@@ -45,18 +42,19 @@ object HttpClientFactory {
                     bearer {
                         loadTokens {
                             val token = provider()
-                            if (token != null) {
+                            if (!token.isNullOrBlank()) {
                                 BearerTokens(
                                     accessToken = token,
                                     refreshToken = token
                                 )
-                            } else { null }
+                            } else {
+                                null
+                            }
                         }
 
                         refreshTokens {
                             val newToken = onRefreshToken?.invoke()
-
-                            if(newToken != null) {
+                            if (!newToken.isNullOrBlank()) {
                                 BearerTokens(
                                     accessToken = newToken,
                                     refreshToken = newToken
@@ -66,9 +64,9 @@ object HttpClientFactory {
                             }
                         }
 
-                        // Don't send token for login endpoint
                         sendWithoutRequest { request ->
-                            !request.url.encodedPath.contains("/login")
+                            request.url.encodedPath.contains("/login") || 
+                            request.url.encodedPath.contains("/register")
                         }
                     }
                 }

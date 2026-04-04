@@ -22,7 +22,8 @@ val networkModule = module {
 
     single(BASE_URL) {
         // "http://10.0.2.2:8080" // can run on emulators
-        "http://192.168.1.37:8080" // only can run on usb debugging physical device
+        // "http://localhost:8080"
+        "http://172.25.134.243:8080" // only can run on usb debugging physical device
     }
 
     // Public client no auth

@@ -41,7 +41,7 @@ class AuthViewModel(
     private val _uiData = MutableStateFlow(UiData())
     val uiData: StateFlow<UiData> = _uiData.asStateFlow()
 
-    private val _uiState = MutableStateFlow<UiState>(UiState.Idle) // Start with Idle
+    private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
     fun onEmailChange(email: String) {
@@ -67,96 +67,79 @@ class AuthViewModel(
         }
     }
 
-        fun login() {
-            resetCredError()
-            val creds = _uiData.value.loginCreds
-            val email = creds.email
-            val password = creds.password
-            var hasError = false
+    fun login() {
+        resetCredError()
+        val creds = _uiData.value.loginCreds
+        val email = creds.email
+        val password = creds.password
+        var hasError = false
 
-            var emailError: String? = null
-            var passwordError: String? = null
-
-            if (!email.isCorrectEmail()) {
-                emailError = "Email should be valid. :)"
-                hasError = true
-            }
-
-            // TODO: Uncomment in actual implementation
-//            if (!password.isCorrectPassword()) {
-//                passwordError = "Password must be 8 words: T_T"
-//                hasError = true
-//            }
-
-            if (hasError) {
-                _uiData.update {
-                    it.copy(
-                        credsError = it.credsError.copy(
-                            emailError = emailError,
-                            passwordError = passwordError
-                        )
-                    )
-                }
-                return
-            }
-
-            _uiState.value = UiState.Loading
-
-            val dto = UserLoginDto(email, password)
-            val params = if (creds.isTeacherLoginAttempt) {
-                Log.d("AuthViewModel", "login: teacher login attempt")
-                LoginUseCase.Params.teacher(dto)
-            } else {
-                Log.d("AuthViewModel", "login: student login attempt")
-                LoginUseCase.Params.student(dto)
-            }
-
-            loginUseCase.execute(
-                params,
-                viewModelScope,
-                onSuccess = { user ->
-                    if (creds.isTeacherLoginAttempt) {
-                        Log.d("AuthViewModel", "login: teacher login success")
-                        val teacher = user as com.example.campussync.domain.model.User.Teacher
-                        _uiData.update {
-                            it.copy(
-                                userDtoData = it.userDtoData.copy(
-                                    id = teacher.id,
-                                    name = teacher.name,
-                                    email = teacher.email,
-                                    role = UserRole.STUDENT,
-                                    status = null,
-                                    createdAt = null,
-                                )
-                            )
-                        }
-                    } else {
-                        val student = user as com.example.campussync.domain.model.User.Student
-                        Log.d("AuthViewModel", "login: student login success")
-                        _uiData.update {
-                            it.copy(
-                                userDtoData = it.userDtoData.copy(
-                                    id = student.id,
-                                    name = student.name,
-                                    email = student.email,
-                                    role = UserRole.STUDENT,
-                                    status = null,
-                                    createdAt = null,
-                                )
-                            )
-                        }
-                    }
-                    // Note: Ensure your LoginUseCase saves the token to TokenManager internally
-                    // Or call sessionManager.triggerManualCheck() here
-                    _uiState.value = UiState.Success(user)
-                    Log.d("AuthViewModel", "login: success")
-                    setAuthenticated()
-                },
-                onError = { throwable ->
-                    Log.d("AuthViewModel", "login: failed")
-                    _uiState.value = UiState.Error(handleError(throwable, "Login Failed").message)
-                }
-            )
+        if (!email.isCorrectEmail()) {
+            _uiData.update { it.copy(credsError = it.credsError.copy(emailError = "Invalid email format")) }
+            hasError = true
         }
 
+        if (password.length < 6) {
+            _uiData.update { it.copy(credsError = it.credsError.copy(passwordError = "Password too short")) }
+            hasError = true
+        }
+
+        if (hasError) return
+
+        _uiState.value = UiState.Loading
+
+        val dto = UserLoginDto(email, password)
+        val params = if (creds.isTeacherLoginAttempt) {
+            Log.d("AuthViewModel", "login: preparing teacher login")
+            LoginUseCase.Params.teacher(dto)
+        } else {
+            Log.d("AuthViewModel", "login: preparing student login")
+            LoginUseCase.Params.student(dto)
+        }
+
+        Log.d("AuthViewModel", "login: calling loginUseCase.execute")
+        loginUseCase.execute(
+            params,
+            viewModelScope,
+            onSuccess = { user ->
+                Log.d("AuthViewModel", "login: onSuccess triggered")
+                if (creds.isTeacherLoginAttempt) {
+                    val teacher = user as com.example.campussync.domain.model.User.Teacher
+                    _uiData.update {
+                        it.copy(
+                            userDtoData = it.userDtoData.copy(
+                                id = teacher.id,
+                                name = teacher.name,
+                                email = teacher.email,
+                                role = UserRole.TEACHER,
+                                status = null,
+                                createdAt = null,
+                            )
+                        )
+                    }
+                } else {
+                    val student = user as com.example.campussync.domain.model.User.Student
+                    _uiData.update {
+                        it.copy(
+                            userDtoData = it.userDtoData.copy(
+                                id = student.id,
+                                name = student.name,
+                                email = student.email,
+                                role = UserRole.STUDENT,
+                                status = null,
+                                createdAt = null,
+                            )
+                        )
+                    }
+                }
+                _uiState.value = UiState.Success(user)
+                setAuthenticated()
+            },
+            onError = { throwable ->
+                Log.e("AuthViewModel", "login: onError triggered - ${throwable.message}")
+                _uiState.value = UiState.Error(handleError(throwable, "Login Failed").message)
+                _uiData.update { it.copy(errorMessage = throwable.message) }
+            }
+        )
+    }
 }
