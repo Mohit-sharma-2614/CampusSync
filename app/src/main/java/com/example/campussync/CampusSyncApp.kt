@@ -1,10 +1,25 @@
 package com.example.campussync
 
 import android.app.Application
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.campussync.utils.ConnectivityObserver
-import dagger.hilt.android.HiltAndroidApp
+import com.example.campussync.di.initKoin
+import com.google.android.datatransport.BuildConfig
+import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.koin.androidLogger
+import org.koin.core.logger.Level
 
-@HiltAndroidApp
-class CampusSyncApp: Application() {
+
+class CampusSyncApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        initKoin {
+            androidContext(this@CampusSyncApp)
+            androidLogger(
+                if (BuildConfig.DEBUG)
+                    Level.DEBUG
+                else{
+                    Level.NONE
+                }
+            )
+        }
+    }
 }

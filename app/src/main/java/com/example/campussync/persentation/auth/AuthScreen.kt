@@ -1,5 +1,6 @@
 package com.example.campussync.persentation.auth
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -19,7 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Person2
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -28,7 +28,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -38,12 +37,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,105 +60,85 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.example.campussync.navigation.Dashboard
-import com.example.campussync.navigation.Login
+import com.example.campussync.data.entity.state.UiState
 import com.example.campussync.persentation.components.RichSnackbarComponent
-import com.example.campussync.utils.ConnectivityObserver
-import compose.icons.AllIcons
-import compose.icons.FontAwesomeIcons
-import compose.icons.Octicons
-import compose.icons.fontawesomeicons.AllIcons
-import compose.icons.fontawesomeicons.Regular
-import compose.icons.fontawesomeicons.Solid
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(
     navController: NavController,
-    viewModel: LoginViewModel = hiltViewModel()
+    viewModel: AuthViewModel = koinViewModel()
 ) {
-    val uiState = viewModel.loginState.collectAsState().value
-    val connectivityStatus by viewModel.connectivityStatus.collectAsState()
-    var showPassword by remember { mutableStateOf(false) }
+    val authState = viewModel.appState.collectAsState().value.session
+    val networkState = viewModel.appState.collectAsState().value.network
+
+    val uiDataState = viewModel.uiData.collectAsState().value
+    val uiState = viewModel.uiState.collectAsState().value
+
+
     val snackbarHostState = remember { SnackbarHostState() }
     var isErrorSnackbar by remember { mutableStateOf(false) }
 
     // Destructure uiState
-    val email = uiState.email
-    val password = uiState.password
-    val isTeacherLoginAttempt = uiState.isTeacherLoginAttempt
+    val email = uiDataState.loginCreds.email
+    val password = uiDataState.loginCreds.password
+    val isTeacherLoginAttempt = uiDataState.loginCreds.isTeacherLoginAttempt
 
+    AuthContent(
+        email = email,
+        onEmailChange = { viewModel.onEmailChange(it) },
+        password = password,
+        onPasswordChange = { viewModel.onPasswordChange(it) },
+        isTeacherLoginAttempt = isTeacherLoginAttempt,
+        userRoleChange = { viewModel.toggleLoginType(it) },
+        onLoginClick = { viewModel.login() },
+        uiState = uiState,
+        credError = uiDataState.credsError,
+        isErrorSnackbar = isErrorSnackbar,
+        snackbarHostState = snackbarHostState,
+    )
+
+}
+
+@Composable
+fun AuthContent(
+    email: String,
+    onEmailChange: (String) -> Unit,
+    password: String,
+    onPasswordChange: (String) -> Unit,
+    isTeacherLoginAttempt: Boolean,
+    userRoleChange: (Boolean) -> Unit,
+    onLoginClick: () -> Unit,
+    uiState: UiState,
+    credError: CredsError,
+    isErrorSnackbar: Boolean,
+    snackbarHostState: SnackbarHostState,
+){
     // Animations for card entrance
     val cardScale by animateFloatAsState(
-        targetValue = if (uiState.isLoading) 0.95f else 1f,
+        targetValue = if (uiState is UiState.Success) 0.95f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy),
         label = "cardScale"
     )
-
-    // Show snackbar for connectivity
-    LaunchedEffect(connectivityStatus) {
-        if (connectivityStatus == ConnectivityObserver.Status.Disconnected) {
-            snackbarHostState.currentSnackbarData?.dismiss()
-            snackbarHostState.showSnackbar(
-                message = "Internet is turned off. Please check your connection.",
-                duration = SnackbarDuration.Indefinite
-            )
-        } else {
-            snackbarHostState.currentSnackbarData?.dismiss()
-        }
-    }
-
-    // Handle login events
-    LaunchedEffect(Unit) {
-        viewModel.loginEvents.collectLatest { event ->
-            when (event) {
-                is LoginViewModel.LoginEvent.Error -> {
-                    isErrorSnackbar = true
-                    snackbarHostState.showSnackbar(event.message)
-                }
-
-                is LoginViewModel.LoginEvent.Success -> {
-                    isErrorSnackbar = false
-                    navController.navigate(Dashboard.route) {
-                        popUpTo(Login.route) { inclusive = true }
-                    }
-
-                    // Show snackbar after navigation (optional)
-                    launch {
-                        snackbarHostState.showSnackbar("Login Successful 🎉")
-                    }
-                }
-
-                is LoginViewModel.LoginEvent.TokenExpired -> {
-                    isErrorSnackbar = true
-                    snackbarHostState.showSnackbar("Session expired. Please log in again.")
-                }
-            }
-        }
-    }
+    var showPassword by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 48.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center),
-                        color = MaterialTheme.colorScheme.primary,
-                        strokeWidth = 2.dp,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                }
-            }
+//            Box(
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .padding(top = 48.dp),
+//                contentAlignment = Alignment.Center
+//            ) {
+//                CircularProgressIndicator(
+//                    modifier = Modifier.align(Alignment.Center),
+//                    color = MaterialTheme.colorScheme.primary,
+//                    strokeWidth = 2.dp,
+//                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+//                )
+//            }
         },
         snackbarHost = {
             SnackbarHost(snackbarHostState) { data ->
@@ -170,9 +147,9 @@ fun AuthScreen(
                     isError = isErrorSnackbar,
                     onActionClick = {
                         data.dismiss()
-                        if (isErrorSnackbar) {
-                            viewModel.retryLogin()
-                        }
+//                        if (isErrorSnackbar) {
+//                            viewModel.retryLogin()
+//                        }
                     },
                     actionLabel = if (isErrorSnackbar) "Retry" else "OK",
                 )
@@ -241,13 +218,13 @@ fun AuthScreen(
                                 label = "Student",
                                 icon = Icons.Rounded.Person,
                                 selected = !isTeacherLoginAttempt,
-                                onClick = { viewModel.updateLoginAttemptRole(false) }
+                                onClick = { userRoleChange(!isTeacherLoginAttempt) }
                             )
                             RoleFilterChip(
                                 label = "Teacher",
                                 icon = Icons.Default.Person2,
                                 selected = isTeacherLoginAttempt,
-                                onClick = { viewModel.updateLoginAttemptRole(true) }
+                                onClick = { userRoleChange(!isTeacherLoginAttempt) }
                             )
                         }
 
@@ -256,32 +233,22 @@ fun AuthScreen(
                         // Email Input with Focus Animation
                         AnimatedTextField(
                             value = email,
-                            onValueChange = { viewModel.updateEmail(it) },
+                            onValueChange = { onEmailChange(it) },
                             label = "Email",
                             icon = Icons.Default.Email,
-                            isError = uiState.errorMessage != null && !email.matches(Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"))
+                            isError = !credError.emailError.isNullOrEmpty(),
+                            errorMessage = credError.emailError ?: ""
                         )
-                        val isEmailValid = email.matches(Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"))
-                        if(!isEmailValid){
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Email is invalid",
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(start = 16.dp),
-                                textAlign = TextAlign.Start
-                            )
-                        }
 
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // Password Input with Focus Animation
                         AnimatedTextField(
                             value = password,
-                            onValueChange = { viewModel.updatePassword(it) },
+                            onValueChange = { onPasswordChange(it) },
                             label = "Password",
                             icon = Icons.Default.Lock,
-                            isError = uiState.errorMessage != null && password.length < 6,
+                            isError = !credError.passwordError.isNullOrEmpty(),
                             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                             trailingIcon = {
                                 IconButton(onClick = { showPassword = !showPassword }) {
@@ -291,36 +258,24 @@ fun AuthScreen(
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                            }
+                            },
+                            errorMessage = credError.passwordError ?: ""
                         )
-                        // Validation
-                        val isPasswordValid = true//password.length >= 6
-
-                        if(!isPasswordValid){
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Password must be at least 6 characters",
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(start = 16.dp),
-                                textAlign = TextAlign.Start
-                            )
-                        }
 
                         Spacer(modifier = Modifier.height(24.dp))
 
                         // Animated Sign In Button
                         val buttonScale by animateFloatAsState(
-                            targetValue = if (isEmailValid && isPasswordValid && !uiState.isLoading) 1f else 0.95f,
+                            targetValue = if (credError.passwordError == "" && credError.emailError == "") 1f else 0.95f,
                             animationSpec = tween(durationMillis = 800),
                             label = "buttonScale"
                         )
                         Button(
-                            onClick = { viewModel.onLoginClick() },
+                            onClick = { onLoginClick() },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .scale(buttonScale),
-                            enabled = isEmailValid && isPasswordValid && !uiState.isLoading,
+                            enabled = true,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -395,7 +350,8 @@ private fun AnimatedTextField(
     onValueChange: (String) -> Unit,
     label: String,
     icon: ImageVector,
-    isError: Boolean,
+    isError: Boolean = false,
+    errorMessage: String = "",
     visualTransformation: VisualTransformation = VisualTransformation.None,
     trailingIcon: @Composable (() -> Unit)? = null
 ) {
@@ -407,47 +363,81 @@ private fun AnimatedTextField(
         label = "borderColor"
     )
 
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = {
-            Text(
-                label,
-                color = if (focusState.value || value.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.Center
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = {
+                Text(
+                    label,
+                    color = if (focusState.value || value.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    icon,
+                    contentDescription = "$label TextField",
+                    tint = if (focusState.value || isError) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            trailingIcon = trailingIcon,
+            visualTransformation = visualTransformation,
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester)
+                .onFocusChanged { focusState.value = it.isFocused },
+            singleLine = true,
+            isError = isError,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = borderColor,
+                unfocusedBorderColor = borderColor,
+                errorBorderColor = borderColor,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                cursorColor = MaterialTheme.colorScheme.primary
             )
-        },
-        leadingIcon = {
-            Icon(
-                icon,
-                contentDescription = "$label TextField",
-                tint = if (focusState.value || isError) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        },
-        trailingIcon = trailingIcon,
-        visualTransformation = visualTransformation,
-        modifier = Modifier
-            .fillMaxWidth()
-            .focusRequester(focusRequester)
-            .onFocusChanged { focusState.value = it.isFocused },
-        singleLine = true,
-        isError = isError,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = borderColor,
-            unfocusedBorderColor = borderColor,
-            errorBorderColor = borderColor,
-            focusedLabelColor = MaterialTheme.colorScheme.primary,
-            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            cursorColor = MaterialTheme.colorScheme.primary
         )
+        AnimatedVisibility(isError) {
+            ErrorMessage(errorMessage)
+        }
+    }
+}
+
+@Composable
+fun ErrorMessage(
+    message: String,
+){
+    Text(
+        text = message,
+        color = MaterialTheme.colorScheme.error,
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+        textAlign = TextAlign.Start
     )
 }
 
 @Preview
 @Composable
 fun AuthScreenPreview() {
-    AuthScreen(
-        navController = rememberNavController(),
-        viewModel = hiltViewModel()
+    AuthContent(
+        email = "",
+        onEmailChange = {},
+        password = "",
+        onPasswordChange = {},
+        isTeacherLoginAttempt = true,
+        userRoleChange = {},
+        onLoginClick = {},
+        uiState = UiState.Loading,
+        isErrorSnackbar = false,
+        snackbarHostState = SnackbarHostState(),
+        credError = CredsError(
+            emailError = null,
+            passwordError = null
+        ),
     )
 }
 

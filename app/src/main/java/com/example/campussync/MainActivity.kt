@@ -6,30 +6,31 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresExtension
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
-import com.example.campussync.navigation.AppNavHost
-import com.example.campussync.navigation.AppNavigation
-import com.example.campussync.persentation.auth.AuthScreen
-import com.example.campussync.persentation.components.BottomNavigationComponent
+import com.example.campussync.navigation.RootNavigation
 import com.example.campussync.ui.theme.CampusSyncTheme
-import dagger.hilt.android.AndroidEntryPoint
+import org.koin.androidx.compose.koinViewModel
 
-@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+
         setContent {
             CampusSyncTheme {
-                AppNavigation()
+                val viewModel: CampusSyncViewModel = koinViewModel()
+                val navController = rememberNavController()
+
+                RootNavigation(
+                    viewModel = viewModel,
+                    navController = navController
+                )
+
+//                AuthScreen(
+//                    navController = rememberNavController()
+//                )
             }
         }
     }
