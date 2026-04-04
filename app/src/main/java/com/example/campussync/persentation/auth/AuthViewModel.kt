@@ -4,7 +4,7 @@ import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.example.campussync.data.entity.state.UiState
 import com.example.campussync.data.remote.dto.enums.UserRole
-import com.example.campussync.data.remote.dto.user.User
+import com.example.campussync.data.remote.dto.user.UserDto
 import com.example.campussync.data.remote.dto.user.UserLoginDto
 import com.example.campussync.domain.usecases.feature.user.LoginUseCase
 import com.example.campussync.domain.usecases.feature.user.isCorrectEmail
@@ -29,7 +29,7 @@ data class UiData(
     val userId: Long = 0,
     val loginCreds: LoginCreds = LoginCreds("", "", false),
     val credsError: CredsError = CredsError(null,null),
-    val userData: User = User(null, name = "--", email = "--", null, null,null),
+    val userDtoData: UserDto = UserDto(null, name = "--", email = "--", null, null,null),
     val errorMessage: String? = null,
 )
 
@@ -120,7 +120,7 @@ class AuthViewModel(
                         val teacher = user as com.example.campussync.domain.model.User.Teacher
                         _uiData.update {
                             it.copy(
-                                userData = it.userData.copy(
+                                userDtoData = it.userDtoData.copy(
                                     id = teacher.id,
                                     name = teacher.name,
                                     email = teacher.email,
@@ -135,7 +135,7 @@ class AuthViewModel(
                         Log.d("AuthViewModel", "login: student login success")
                         _uiData.update {
                             it.copy(
-                                userData = it.userData.copy(
+                                userDtoData = it.userDtoData.copy(
                                     id = student.id,
                                     name = student.name,
                                     email = student.email,
@@ -149,6 +149,8 @@ class AuthViewModel(
                     // Note: Ensure your LoginUseCase saves the token to TokenManager internally
                     // Or call sessionManager.triggerManualCheck() here
                     _uiState.value = UiState.Success(user)
+                    Log.d("AuthViewModel", "login: success")
+                    setAuthenticated()
                 },
                 onError = { throwable ->
                     Log.d("AuthViewModel", "login: failed")

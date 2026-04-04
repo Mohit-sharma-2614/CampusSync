@@ -42,6 +42,14 @@ abstract class AbsViewModel (
             AppState(SessionState.Loading, NetworkObserver.Status.Available)
         )
 
+    fun setAuthenticated() {
+        dependencies.sessionManager.setAuthenticated()
+    }
+
+    fun setUnauthenticated() {
+        dependencies.sessionManager.setUnauthenticated()
+    }
+
     protected fun handleError(throwable: Throwable, error: String = ""): ErrorEntity {
         Log.e("AbsViewModel","$error: "+throwable.message.toString())
         return ErrorEntity(throwable.message ?: "")

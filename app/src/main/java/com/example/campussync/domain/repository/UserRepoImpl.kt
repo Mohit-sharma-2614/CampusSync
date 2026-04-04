@@ -5,6 +5,7 @@ import com.example.campussync.data.remote.api.toDomain
 import com.example.campussync.data.remote.dto.auth.AuthDto
 import com.example.campussync.data.remote.dto.refreshtoken.RefreshTokenInputDto
 import com.example.campussync.data.remote.dto.refreshtoken.RefreshTokenResponseDto
+import com.example.campussync.data.remote.dto.user.UserDto
 import com.example.campussync.data.remote.dto.user.UserLoginDto
 import com.example.campussync.data.remote.repository.UserRepo
 import com.example.campussync.domain.model.User
@@ -12,6 +13,11 @@ import com.example.campussync.domain.model.User
 class UserRepoImpl(
     private val userApi: UserApi
 ) : UserRepo {
+
+    override suspend fun getUserById(id: Long): UserDto {
+        return userApi.getUserById(id)
+    }
+
     override suspend fun loginStudent(loginDto: UserLoginDto): User{
         return userApi.loginStudent(loginDto).toDomain()
     }

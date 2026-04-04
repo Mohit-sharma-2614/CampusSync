@@ -1,30 +1,15 @@
 package com.example.campussync
 
-import com.example.campussync.data.entity.state.SessionState
+import com.example.campussync.data.observer.NetworkObserver
 import com.example.campussync.persentation.base.AbsViewModel
 
 class CampusSyncViewModel(
+    private val observeNetworkUseCase: NetworkObserver,
     dependencies: AbsDependencies
 ) : AbsViewModel(dependencies) {
     private val _sessionState = appState.value.session
 
-    init {
-        checkAppState()
-    }
-
-    fun checkAppState(){
-        when(_sessionState){
-            SessionState.Loading -> {
-                // Show loading
-            }
-
-            SessionState.Authenticated -> {
-                // Go to Dashboard
-            }
-
-            SessionState.Unauthenticated -> {
-                // Go  to login screen
-            }
-        }
+    fun onRetryClick(){
+        observeNetworkUseCase.observe()
     }
 }

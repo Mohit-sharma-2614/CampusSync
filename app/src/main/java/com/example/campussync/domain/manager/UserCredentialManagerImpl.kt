@@ -1,5 +1,6 @@
 package com.example.campussync.domain.manager
 
+import android.util.Log
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.example.campussync.data.manager.StorageManager
 import com.example.campussync.data.manager.UserCredentialManager
@@ -19,18 +20,22 @@ class UserCredentialManagerImpl(
     override fun saveUserId(userId: String) {
         coroutineScope.launch {
             storageManager.saveData(userId, userIdKey)
+            Log.d("UserCredentialManager", "saveUserId: $userId")
         }
     }
 
     override fun getUserId(): String {
         return runBlocking(Dispatchers.IO) {
-            storageManager.readPrefs(userIdKey).first()
+            val userId = storageManager.readPrefs(userIdKey).first()
+            Log.d("UserCredentialManager", "getUserId: $userId")
+            userId
         }
     }
 
     override fun clearUserId() {
         coroutineScope.launch {
             storageManager.clearPrefs(userIdKey)
+            Log.d("UserCredentialManager", "clearUserId: cleared")
         }
     }
 }

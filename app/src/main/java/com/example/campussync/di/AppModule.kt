@@ -27,6 +27,7 @@ import com.example.campussync.domain.usecases.feature.teacher.GetTeacherByIdUseC
 import com.example.campussync.domain.usecases.feature.teacher.RegisterTeacherUseCase
 import com.example.campussync.domain.usecases.feature.teacher.UpdateTeacherUseCase
 import com.example.campussync.domain.usecases.feature.user.GetUserByIdUseCase
+import com.example.campussync.domain.usecases.feature.user.GetUserIdUseCase
 import com.example.campussync.domain.usecases.feature.user.LogOutUseCase
 import com.example.campussync.domain.usecases.feature.user.LoginUseCase
 import com.example.campussync.domain.usecases.feature.user.RefreshTokenUseCase
@@ -34,6 +35,7 @@ import com.example.campussync.domain.usecases.feature.user.SaveTokenUseCase
 import com.example.campussync.domain.usecases.feature.user.ValidateTokenUseCase
 import com.example.campussync.persentation.auth.AuthViewModel
 import com.example.campussync.persentation.base.AbsViewModel
+import com.example.campussync.persentation.dashboard.DashboardViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -52,13 +54,14 @@ val appModule = module {
     single { StorageManagerImpl(get()) }
     single { AuthViewModel(dependencies = get(), loginUseCase = get()) }
     single { AbsViewModel.AbsDependencies(get(), get()) }
-    single { CampusSyncViewModel(get()) }
+    single { CampusSyncViewModel(get(),get()) }
+    single { DashboardViewModel(get(),get(),get(),get(),get()) }
 }
 
 val useCaseModule = module {
     single { CheckNetworkUseCase(get()) }
     single { ValidateTokenUseCase(get()) }
-    single { GetUserByIdUseCase(get()) }
+    single { GetUserIdUseCase(get()) }
     single { LoginUseCase(get(),get(),get()) }
     single { GetUserByIdUseCase(get()) }
     single { RefreshTokenUseCase(get()) }

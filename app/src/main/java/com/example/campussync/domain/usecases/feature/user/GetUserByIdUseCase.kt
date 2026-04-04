@@ -1,19 +1,20 @@
 package com.example.campussync.domain.usecases.feature.user
 
-import com.example.campussync.data.manager.UserCredentialManager
+import com.example.campussync.data.remote.dto.user.UserDto
+import com.example.campussync.data.remote.repository.UserRepo
 import com.example.campussync.domain.usecases.base.BaseUseCase
 
 class GetUserByIdUseCase(
-    private val userCredentialManager: UserCredentialManager
-): BaseUseCase<String, GetUserByIdUseCase.Params>() {
+    private val repo: UserRepo
+): BaseUseCase<UserDto, GetUserByIdUseCase.Params>() {
 
-    override suspend fun buildUseCase(params: Params): String {
-        return userCredentialManager.getUserId()
+    override suspend fun buildUseCase(params: Params): UserDto {
+        return repo.getUserById(params.userId.toLong())
     }
 
-    class Params private constructor(){
+    class Params private constructor(val userId: String){
         companion object{
-            fun forGetUserId() = Params()
+            fun forGetUserById(userId: String) = Params(userId)
         }
     }
 }

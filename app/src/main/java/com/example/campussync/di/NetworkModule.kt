@@ -21,8 +21,8 @@ val networkModule = module {
     single<TokenManager> { TokenManagerImpl(get()) }
 
     single(BASE_URL) {
-        "http://10.0.2.2:8080" // can run on emulators
-        // "http://192.168.1.37:8080" // only can run on usb debugging physical device
+        // "http://10.0.2.2:8080" // can run on emulators
+        "http://192.168.1.37:8080" // only can run on usb debugging physical device
     }
 
     // Public client no auth

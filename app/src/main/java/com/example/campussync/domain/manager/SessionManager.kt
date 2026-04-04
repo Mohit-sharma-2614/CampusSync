@@ -5,7 +5,7 @@ import com.example.campussync.data.entity.state.SessionState
 import com.example.campussync.data.manager.TokenManager
 import com.example.campussync.data.manager.UserCredentialManager
 import com.example.campussync.data.remote.dto.refreshtoken.RefreshTokenInputDto
-import com.example.campussync.domain.usecases.feature.user.GetUserByIdUseCase
+import com.example.campussync.domain.usecases.feature.user.GetUserIdUseCase
 import com.example.campussync.domain.usecases.feature.user.RefreshTokenUseCase
 import com.example.campussync.domain.usecases.feature.user.ValidateTokenUseCase
 import kotlinx.coroutines.CoroutineScope
@@ -18,7 +18,7 @@ class SessionManager(
     private val refreshTokenUseCase: RefreshTokenUseCase,
     private val tokenManager: TokenManager,
     private val userCredentialManager: UserCredentialManager,
-    private val getUserByIdUseCase: GetUserByIdUseCase,
+    private val getUserIdUseCase: GetUserIdUseCase,
     private val scope: CoroutineScope
 ) {
     private val _sessionState = MutableStateFlow<SessionState>(SessionState.Loading)
@@ -30,12 +30,20 @@ class SessionManager(
 
     // Changed to suspend to avoid runBlocking
     private suspend fun getUserId(): String {
-        val userId = getUserByIdUseCase.execute(GetUserByIdUseCase.Params.forGetUserId())
+        val userId = getUserIdUseCase.execute(GetUserIdUseCase.Params.forGetUserId())
         Log.d("SessionManager", "getUserId: $userId")
         return userId
     }
 
-    private fun checkSession() {
+    fun setAuthenticated() {
+        _sessionState.value = SessionState.Authenticated
+    }
+
+    fun setUnauthenticated() {
+        _sessionState.value = SessionState.Unauthenticated
+    }
+
+    fun checkSession() {
         scope.launch {
             try {
                 val userId = getUserId()

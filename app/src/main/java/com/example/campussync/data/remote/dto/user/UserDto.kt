@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 
 @Serializable
-data class User(
+data class UserDto(
     val id: Long?,
     val name: String,
     val email: String,

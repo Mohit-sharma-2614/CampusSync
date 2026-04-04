@@ -5,10 +5,12 @@ import com.example.campussync.data.remote.dto.refreshtoken.RefreshTokenInputDto
 import com.example.campussync.data.remote.dto.refreshtoken.RefreshTokenResponseDto
 import com.example.campussync.data.remote.dto.student.StudentDto
 import com.example.campussync.data.remote.dto.teacher.TeacherDto
+import com.example.campussync.data.remote.dto.user.UserDto
 import com.example.campussync.data.remote.dto.user.UserLoginDto
 import com.example.campussync.domain.model.User
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -18,6 +20,14 @@ class UserApi(
     private val publicClient: HttpClient,
     private val authClient: HttpClient
 ) {
+
+    suspend fun getUserById(id: Long): UserDto {
+        return publicClient.get("/user"){
+            url {
+                parameters.append("id", id.toString())
+            }
+        }.body()
+    }
 
     suspend fun loginStudent(loginDto: UserLoginDto): StudentDto {
         val response = publicClient.post("student/login") {
