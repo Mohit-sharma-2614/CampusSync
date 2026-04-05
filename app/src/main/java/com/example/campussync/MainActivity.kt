@@ -17,7 +17,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-
         setContent {
             CampusSyncTheme {
                 val viewModel: CampusSyncViewModel = koinViewModel()
@@ -27,10 +26,6 @@ class MainActivity : ComponentActivity() {
                     viewModel = viewModel,
                     navController = navController
                 )
-
-//                AuthScreen(
-//                    navController = rememberNavController()
-//                )
             }
         }
     }

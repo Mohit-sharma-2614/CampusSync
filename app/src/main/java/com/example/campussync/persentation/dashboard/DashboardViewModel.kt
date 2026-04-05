@@ -1,6 +1,9 @@
 package com.example.campussync.persentation.dashboard
 
 import android.util.Log
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.AirplaneTicket
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewModelScope
@@ -9,6 +12,8 @@ import com.example.campussync.data.remote.dto.refreshtoken.RefreshTokenInputDto
 import com.example.campussync.domain.usecases.feature.user.GetUserByIdUseCase
 import com.example.campussync.domain.usecases.feature.user.GetUserIdUseCase
 import com.example.campussync.domain.usecases.feature.user.LogOutUseCase
+import com.example.campussync.navigation.AssignmentsRoute
+import com.example.campussync.navigation.AttendanceRoute
 import com.example.campussync.persentation.base.AbsViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,7 +35,7 @@ data class DashboardUiState(
     val cards: List<DashboardCard> = emptyList(),
     val isTeacher: Boolean = false,
     val userId: String = "",
-    val isLoading: Boolean = true,
+    val isLoading: Boolean = false,
     val errorMessage: String? = null
 )
 
@@ -48,10 +53,38 @@ class DashboardViewModel (
 
     init {
         getUserId()
+        buildCards()
     }
 
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    fun buildCards() {
+        _uiState.update {
+            it.copy(
+                cards = listOf(
+                    DashboardCard(
+                        title = "Attendance",
+                        iconRes = Icons.AutoMirrored.Filled.AirplaneTicket,
+                        colors = listOf(
+                            Color(0xFF4CAF50),
+                            Color(0xFF81C784)
+                        ),
+                        destination = AttendanceRoute.route
+                    ),
+                    DashboardCard(
+                        title = "Assignments",
+                        iconRes = Icons.AutoMirrored.Filled.Notes,
+                        colors = listOf(
+                            Color(0xFFF44336),
+                            Color(0xFFE57373)
+                        ),
+                        destination = AssignmentsRoute.route
+                    )
+                )
+            )
+        }
     }
 
     fun logOut(){

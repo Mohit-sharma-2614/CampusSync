@@ -1,5 +1,59 @@
-//package com.example.campussync.persentation.profile
-//
+package com.example.campussync.persentation.profile
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.example.campussync.utils.config.TopBarConfig
+
+
+@Composable
+fun ProfileScreen(
+    setTopBar: (TopBarConfig) -> Unit
+){
+    LaunchedEffect(Unit) {
+        setTopBar(
+            TopBarConfig(
+                title = "Profile Screen"
+            )
+        )
+    }
+    ProfileScreenContent()
+}
+
+@Composable
+fun ProfileScreenContent(){
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Profile Screen",
+            style = MaterialTheme.typography.headlineLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            softWrap = true
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "This is the Profile screen content.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            softWrap = true
+        )
+    }
+}
+
 //import androidx.compose.foundation.background
 //import androidx.compose.foundation.layout.Arrangement
 //import androidx.compose.foundation.layout.Box
