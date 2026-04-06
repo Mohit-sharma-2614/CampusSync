@@ -136,7 +136,7 @@ private fun DashboardContent(
         ),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.padding(16.dp)
+        modifier = Modifier.padding(0.dp)
     ) {
         if (cards.isEmpty()) {
             // Show a message if no cards are available (e.g., after initial load, or if teacher has no data)
