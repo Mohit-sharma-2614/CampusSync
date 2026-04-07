@@ -53,6 +53,13 @@ object AttendanceRoute : Routes {
     override val route = "attendance"
 }
 
+object SubjectRoute : Routes {
+    override val selectedIcon = Icons.Filled.Class
+    override val unselectedIcon = Icons.Outlined.Class
+    override val name = "Subjects"
+    override val route = "subjects"
+}
+
 object AssignmentsRoute : Routes {
     override val selectedIcon = Icons.Filled.Class
     override val unselectedIcon = Icons.Outlined.Class

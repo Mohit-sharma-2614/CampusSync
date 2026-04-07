@@ -14,6 +14,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.campussync.CampusSyncViewModel
 import com.example.campussync.data.entity.state.SessionState
 import com.example.campussync.data.observer.NetworkObserver
+import com.example.campussync.persentation.attendance.subject.SubjectListScreen
 import com.example.campussync.persentation.auth.AuthScreen
 import com.example.campussync.persentation.dashboard.DashboardScreen
 import com.example.campussync.persentation.profile.ProfileScreen
@@ -98,6 +99,13 @@ fun RootNavigation(
                                 popUpTo(0) { inclusive = true }
                             }
                         }
+                    )
+                }
+
+                composable(SubjectRoute.route) {
+                    SubjectListScreen(
+                        onBackClick = { navController.popBackStack() },
+                        setTopBar = { viewModel.setTopBar(it) }
                     )
                 }
             }

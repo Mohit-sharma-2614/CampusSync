@@ -16,8 +16,8 @@ class EnrollmentRepoImpl(
         return api.getEnrollmentById(id)
     }
 
-    override suspend fun getEnrollmentByStudentId(id: String): List<EnrollmentDto> {
-        return api.getEnrollmentByStudentId(id.toLong())
+    override suspend fun getEnrollmentByStudentId(id: Long): List<EnrollmentDto> {
+        return api.getEnrollmentByStudentId(id)
     }
 
     override suspend fun getEnrollmentByCourseOfferingId(id: Long): List<EnrollmentDto> {

@@ -2,17 +2,18 @@ package com.example.campussync.data.remote.dto.user
 
 import com.example.campussync.data.remote.dto.enums.UserRole
 import com.example.campussync.data.remote.dto.enums.UserStatus
-import com.example.campussync.utils.TimestampSerializer
+import com.example.campussync.utils.InstantSerializer
 import kotlinx.serialization.Serializable
-import java.sql.Timestamp
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 @Serializable
-data class UserDto(
+data class UserDto @OptIn(ExperimentalTime::class) constructor(
     val id: Long?,
     val name: String,
     val email: String,
     val role: UserRole?,
     val status: UserStatus?,
-    @Serializable(with = TimestampSerializer::class)
-    val createdAt: Timestamp?
+    @Serializable(with = InstantSerializer::class)
+    val createdAt: Instant?
 )

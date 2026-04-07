@@ -32,9 +32,9 @@ class GetAttendanceByStudentIdUseCase(
         val status: AttendanceStatus,
     )
 
-    class Params private constructor(val studentId: String){
+    class Params private constructor(val studentId: Long){
         companion object{
-            fun forGetAttendanceByStudentId(studentId: String) = Params(studentId)
+            fun forGetAttendanceByStudentId(studentId: Long) = Params(studentId)
         }
     }
 }

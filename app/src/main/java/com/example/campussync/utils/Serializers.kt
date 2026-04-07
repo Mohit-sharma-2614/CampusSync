@@ -6,11 +6,13 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import java.sql.Timestamp
 import java.sql.Date
+import java.sql.Timestamp
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 object LocalDateTimeSerializer : KSerializer<LocalDateTime> {
     private val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
@@ -59,5 +61,18 @@ object SqlDateSerializer : KSerializer<Date> {
 
     override fun deserialize(decoder: Decoder): Date {
         return Date(decoder.decodeLong())
+    }
+}
+
+@OptIn(ExperimentalTime::class)
+object InstantSerializer : KSerializer<Instant> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("java.time.Instant", PrimitiveKind.STRING)
+    override fun serialize(encoder: Encoder, value: Instant) {
+        encoder.encodeString(value.toString())
+    }
+    override fun deserialize(decoder: Decoder): Instant {
+        // Reads the string "2026-03-28T04:07:52.714+00:00" and parses it
+        return Instant.parse(decoder.decodeString())
     }
 }

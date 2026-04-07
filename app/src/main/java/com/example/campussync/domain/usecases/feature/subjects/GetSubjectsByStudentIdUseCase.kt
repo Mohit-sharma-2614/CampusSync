@@ -11,7 +11,7 @@ class GetSubjectsByStudentIdUseCase(
     private val courseOfferingsRepo: CourseOfferingsRepo,
     private val subjectRepo: SubjectRepo,
     private val enrollmentRepo: EnrollmentRepo,
-): BaseUseCase<List<GetSubjectsByStudentIdUseCase.Subject>, GetSubjectsByStudentIdUseCase.Params>() {
+): BaseUseCase<List<Subject>, GetSubjectsByStudentIdUseCase.Params>() {
 
 
     override suspend fun buildUseCase(params: Params): List<Subject> {
@@ -33,17 +33,17 @@ class GetSubjectsByStudentIdUseCase(
         return subject
     }
 
-    data class Subject(
-        val id: Long,
-        val name: String,
-        val code: String,
-        val credits: Int
-    )
-
-    class Params private constructor(val studentId: String) {
+    class Params private constructor(val studentId: Long) {
         companion object {
-            fun forGetSubjectsByStudentId(studentId: String) = Params(studentId)
+            fun forGetSubjectsByStudentId(studentId: Long) = Params(studentId)
         }
     }
 
 }
+
+data class Subject(
+    val id: Long,
+    val name: String,
+    val code: String,
+    val credits: Int
+)

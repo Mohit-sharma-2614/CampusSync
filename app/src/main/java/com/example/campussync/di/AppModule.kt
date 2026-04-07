@@ -44,6 +44,8 @@ import com.example.campussync.domain.usecases.feature.network.CheckNetworkUseCas
 import com.example.campussync.domain.usecases.feature.student.GetStudentByIdUseCase
 import com.example.campussync.domain.usecases.feature.student.RegisterStudentUseCase
 import com.example.campussync.domain.usecases.feature.student.UpdateStudentUseCase
+import com.example.campussync.domain.usecases.feature.subjects.GetSubjectsByStudentIdUseCase
+import com.example.campussync.domain.usecases.feature.subjects.GetSubjectsByTeacherIdUseCase
 import com.example.campussync.domain.usecases.feature.teacher.GetTeacherByIdUseCase
 import com.example.campussync.domain.usecases.feature.teacher.RegisterTeacherUseCase
 import com.example.campussync.domain.usecases.feature.teacher.UpdateTeacherUseCase
@@ -54,6 +56,7 @@ import com.example.campussync.domain.usecases.feature.user.LoginUseCase
 import com.example.campussync.domain.usecases.feature.user.RefreshTokenUseCase
 import com.example.campussync.domain.usecases.feature.user.SaveTokenUseCase
 import com.example.campussync.domain.usecases.feature.user.ValidateTokenUseCase
+import com.example.campussync.persentation.attendance.subject.SubjectListViewModel
 import com.example.campussync.persentation.auth.AuthViewModel
 import com.example.campussync.persentation.base.AbsViewModel
 import com.example.campussync.persentation.dashboard.DashboardViewModel
@@ -78,6 +81,7 @@ val appModule = module {
     single { AbsViewModel.AbsDependencies(get(), get()) }
     viewModel { CampusSyncViewModel(get(),get()) }
     viewModel { DashboardViewModel(get(),get(),get(),get(),get()) }
+    viewModel { SubjectListViewModel(get(),get(),get(),get()) }
 }
 
 val useCaseModule = module {
@@ -95,20 +99,22 @@ val useCaseModule = module {
     single { GetStudentByIdUseCase(get()) }
     single { RegisterStudentUseCase(get()) }
     single { UpdateStudentUseCase(get()) }
+    single { GetSubjectsByStudentIdUseCase(get(),get(),get()) }
+    single { GetSubjectsByTeacherIdUseCase(get(), get()) }
 }
 
 
 val apiModule = module {
     single { UserApi(publicClient = get(PUBLIC_CLIENT), authClient = get(AUTH_CLIENT)) }
-    single { StudentApi(client = get(PUBLIC_CLIENT)) }
-    single { TeacherApi(client = get(PUBLIC_CLIENT)) }
-    single { AttendanceApi(client = get(PUBLIC_CLIENT)) }
-    single { AttendanceTokenApi(client = get(PUBLIC_CLIENT)) }
-    single { CourseOfferingApi(client = get(PUBLIC_CLIENT)) }
-    single { DepartmentApi(client = get(PUBLIC_CLIENT)) }
-    single { EnrollmentApi(client = get(PUBLIC_CLIENT)) }
-    single { LectureSessionApi(client = get(PUBLIC_CLIENT)) }
-    single { SubjectApi(client = get(PUBLIC_CLIENT)) }
+    single { StudentApi(client = get(AUTH_CLIENT)) }
+    single { TeacherApi(client = get(AUTH_CLIENT)) }
+    single { AttendanceApi(client = get(AUTH_CLIENT)) }
+    single { AttendanceTokenApi(client = get(AUTH_CLIENT)) }
+    single { CourseOfferingApi(client = get(AUTH_CLIENT)) }
+    single { DepartmentApi(client = get(AUTH_CLIENT)) }
+    single { EnrollmentApi(client = get(AUTH_CLIENT)) }
+    single { LectureSessionApi(client = get(AUTH_CLIENT)) }
+    single { SubjectApi(client = get(AUTH_CLIENT)) }
 }
 
 

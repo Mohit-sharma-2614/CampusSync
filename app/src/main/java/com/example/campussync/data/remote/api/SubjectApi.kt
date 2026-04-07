@@ -18,7 +18,7 @@ class SubjectApi(
     suspend fun getSubjectById(id: Long): SubjectDto {
         val subject = client.get("/subject"){
             url{
-                parameters.append("id", id.toString())
+                parameters.append("subjectId", id.toString())
             }
         }
         return subject.body()

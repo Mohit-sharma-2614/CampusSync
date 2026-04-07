@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlin.time.ExperimentalTime
 
 data class LoginCreds(
     val email: String,
@@ -25,7 +26,7 @@ data class CredsError(
     val passwordError: String?
 )
 
-data class UiData(
+data class UiData @OptIn(ExperimentalTime::class) constructor(
     val userId: Long = 0,
     val loginCreds: LoginCreds = LoginCreds("", "", false),
     val credsError: CredsError = CredsError(null,null),
@@ -67,6 +68,7 @@ class AuthViewModel(
         }
     }
 
+    @OptIn(ExperimentalTime::class)
     fun login() {
         resetCredError()
         val creds = _uiData.value.loginCreds

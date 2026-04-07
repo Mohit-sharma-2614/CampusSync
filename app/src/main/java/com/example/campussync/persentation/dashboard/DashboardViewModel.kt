@@ -13,7 +13,7 @@ import com.example.campussync.domain.usecases.feature.user.GetUserByIdUseCase
 import com.example.campussync.domain.usecases.feature.user.GetUserIdUseCase
 import com.example.campussync.domain.usecases.feature.user.LogOutUseCase
 import com.example.campussync.navigation.AssignmentsRoute
-import com.example.campussync.navigation.AttendanceRoute
+import com.example.campussync.navigation.SubjectRoute
 import com.example.campussync.persentation.base.AbsViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -71,7 +71,7 @@ class DashboardViewModel (
                             Color(0xFF4CAF50),
                             Color(0xFF81C784)
                         ),
-                        destination = AttendanceRoute.route
+                        destination = SubjectRoute.route
                     ),
                     DashboardCard(
                         title = "Assignments",

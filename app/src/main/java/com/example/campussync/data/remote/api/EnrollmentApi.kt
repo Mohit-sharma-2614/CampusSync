@@ -26,7 +26,7 @@ class EnrollmentApi(
     suspend fun getEnrollmentByStudentId(id: Long): List<EnrollmentDto>{
         val enrollments = client.get("/enrollment/student") {
             url {
-                parameters.append("id", id.toString())
+                parameters.append("studentId", id.toString())
             }
         }
         return enrollments.body()

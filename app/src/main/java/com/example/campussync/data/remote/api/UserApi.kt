@@ -1,6 +1,9 @@
 package com.example.campussync.data.remote.api
 
+import android.util.Log
 import com.example.campussync.data.remote.dto.auth.AuthDto
+import com.example.campussync.data.remote.dto.enums.UserRole
+import com.example.campussync.data.remote.dto.enums.UserStatus
 import com.example.campussync.data.remote.dto.refreshtoken.RefreshTokenInputDto
 import com.example.campussync.data.remote.dto.refreshtoken.RefreshTokenResponseDto
 import com.example.campussync.data.remote.dto.student.StudentDto
@@ -17,6 +20,9 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 class UserApi(
     private val publicClient: HttpClient,
@@ -31,12 +37,26 @@ class UserApi(
         }
     }
 
+    @OptIn(ExperimentalTime::class)
     suspend fun getUserById(id: Long): UserDto {
-        val response = publicClient.get("/user") {
-            url { parameters.append("id", id.toString()) }
+        Log.d("UserApi", "getUserById: $id")
+        try {
+            val response = authClient.get("/users") {
+                url { parameters.append("userId", id.toString()) }
+            }
+            ensureSuccess(response)
+            return response.body()
+        } catch (e: Exception){
+            Log.e("UserApi", "getUserById: ${e.message}")
+            return UserDto(
+                id = 0,
+                name = "",
+                email = "",
+                role = UserRole.ADMIN,
+                status = UserStatus.INACTIVE,
+                createdAt = Instant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds())
+            )
         }
-        ensureSuccess(response)
-        return response.body()
     }
 
     suspend fun loginStudent(loginDto: UserLoginDto): StudentDto {

@@ -7,7 +7,7 @@ import com.example.campussync.domain.usecases.base.BaseUseCase
 class GetSubjectsByTeacherIdUseCase(
     private val courseOfferingsRepo: CourseOfferingsRepo,
     private val subjectRepo: SubjectRepo,
-): BaseUseCase<List<GetSubjectsByTeacherIdUseCase.Subject>, GetSubjectsByTeacherIdUseCase.Params>() {
+): BaseUseCase<List<Subject>, GetSubjectsByTeacherIdUseCase.Params>() {
 
     override suspend fun buildUseCase(params: Params): List<Subject> {
         val courseOfferings = courseOfferingsRepo.getCourseOfferingsByTeacherId(params.teacherId.toLong())
@@ -24,13 +24,6 @@ class GetSubjectsByTeacherIdUseCase(
             )
         }
     }
-
-    data class Subject(
-        val id: Long,
-        val name: String,
-        val code: String,
-        val credits: Int,
-    )
     class Params private constructor(val teacherId: String){
         companion object{
             fun forGetSubjectsByTeacherId(teacherId: String) = Params(teacherId)
